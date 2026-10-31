@@ -1,0 +1,392 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap');
+:root{--ink:#242c27;--muted:#778078;--paper:#f8f5ee;--green:#415e4b;--line:#e8e4da;--orange:#e99061}*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font-family:'DM Sans',sans-serif;min-height:100vh}.app-shell{width:min(1120px,calc(100% - 64px));margin:auto;min-height:100vh;display:flex;flex-direction:column}.topbar{height:82px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line)}.brand{text-decoration:none;color:var(--ink);font-weight:800;font-size:17px;letter-spacing:-.5px;display:flex;align-items:center;gap:10px}.brand-mark{display:grid;place-items:center;background:#e8eee5;border-radius:50%;width:33px;height:33px;color:var(--green);font-size:19px}.version,.eyebrow,.page-footer,.tap-tip{font:500 10px 'DM Mono',monospace;letter-spacing:1.2px}.version{color:#798178}.chooser{width:100%;max-width:876px;margin:auto;padding:50px 0 58px}.intro{text-align:center;margin-bottom:38px}.eyebrow{color:#718174;margin:0 0 14px}.intro h1,.instrument-title h1{font:700 clamp(40px,6vw,62px)/1.03 'Playfair Display',serif;letter-spacing:-1.5px;margin:0}.intro h1 span{color:var(--green);font-style:italic}.intro-copy{font-size:15px;color:#747b74;line-height:1.65;margin:17px 0 0}.instrument-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:13px}.instrument-card{position:relative;text-align:left;border:1px solid var(--line);border-radius:15px;min-height:153px;padding:21px 22px;background:#fffdf8;cursor:pointer;color:var(--ink);font-family:inherit;transition:transform .18s,border-color .18s,box-shadow .18s;touch-action:manipulation}.instrument-card:hover,.instrument-card:focus-visible{transform:translateY(-3px);border-color:#aab6a8;box-shadow:0 9px 24px #26352a12;outline:none}.card-icon{display:grid;place-items:center;width:39px;height:39px;border-radius:12px;background:#edf1e9;color:#41604b;font-size:24px;margin-bottom:14px}.card-guitar .card-icon{background:#f8eee3;color:#ad7043}.card-drums .card-icon{background:#f7e9e7;color:#bc6557}.card-violin .card-icon{background:#f1eaf3;color:#8a6994}.card-flute .card-icon{background:#e8eff2;color:#597f8c}.card-clarinet .card-icon{background:#f4efdf;color:#9a8244}.card-name,.card-detail{display:block}.card-name{font-size:16px;font-weight:700}.card-detail{font-size:12px;color:#899087;margin-top:4px}.card-arrow{position:absolute;right:20px;bottom:20px;color:#9aa197;font-size:17px}.hint{text-align:center;font-size:12px;color:#7d857b;margin:27px 0 0}.hint span{color:#d38a52}.page-footer{color:#a2a69e;display:flex;justify-content:space-between;border-top:1px solid var(--line);padding:18px 0;margin-top:auto;font-size:9px}.hidden{display:none!important}.player{width:100%;max-width:950px;margin:auto;padding:38px 0 46px}.player-heading{display:flex;align-items:center;justify-content:space-between;margin-bottom:25px}.back-button{border:0;background:transparent;font:600 13px 'DM Sans',sans-serif;color:#68736a;padding:10px 0;cursor:pointer}.back-button span{font-size:19px;vertical-align:-1px;margin-right:7px}.back-button:hover{color:var(--green)}.instrument-title{display:flex;align-items:center;gap:13px}.instrument-title h1{font-size:35px;letter-spacing:-.5px}.instrument-title .eyebrow{margin-bottom:4px;font-size:9px}.title-icon{display:grid;place-items:center;width:49px;height:49px;background:#e8eee5;border-radius:15px;color:var(--green);font-size:26px}.tap-tip{color:#8a9188}.tap-tip span{font-size:17px;color:var(--orange);vertical-align:-2px}.stage{position:relative;min-height:385px;border-radius:20px;border:1px solid #e7e3d9;background:#fffdf8;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:36px 38px;overflow:hidden}.stage:before{content:"";position:absolute;width:380px;height:380px;border-radius:50%;background:#f7f4eb;top:50%;left:50%;transform:translate(-50%,-50%);z-index:0}.instrument-art,.controls{z-index:1;width:100%;display:flex;justify-content:center}.instrument-art{margin-bottom:25px}.player-footer{display:flex;align-items:center;gap:9px;margin-top:17px;font-size:12px;color:#778078}.sound-dot{width:7px;height:7px;border-radius:50%;background:#87a078}.footer-note{margin-left:auto;color:#9da39a;font-size:11px}.keys{display:flex;position:relative;height:174px;width:min(600px,100%);filter:drop-shadow(0 6px 6px #303d2510)}.white-key{position:relative;flex:1;background:#fff;border:1px solid #d9d9d2;border-radius:0 0 7px 7px;cursor:pointer;touch-action:manipulation;display:flex;align-items:flex-end;justify-content:center;padding-bottom:12px;color:#a2a69e;font:10px 'DM Mono',monospace;transition:background .1s}.white-key:active,.white-key.playing{background:#e9f0e7}.black-key{position:absolute;top:0;z-index:2;width:7%;height:59%;border:0;border-radius:0 0 5px 5px;background:#303a34;cursor:pointer;touch-action:manipulation;box-shadow:0 3px 3px #10181033;transition:background .1s,transform .1s}.black-key:active,.black-key.playing{background:#6d8d70;transform:translateY(2px)}.string-board{width:min(600px,100%);display:grid;gap:0;padding:8px 0}.string-control{display:flex;align-items:center;gap:15px;min-height:43px;border:0;background:transparent;cursor:pointer;touch-action:manipulation;padding:3px 10px;color:#6e746e;font:11px 'DM Mono',monospace}.string-control .string-label{width:18px;text-align:center}.string-line{height:var(--thickness,2px);background:linear-gradient(90deg,#b89665,#e5d3af,#a88657);border-radius:3px;flex:1;transition:all .12s;box-shadow:0 1px 1px #5f472722}.string-control:hover .string-line,.string-control.playing .string-line,.string-control:active .string-line{background:#789879;box-shadow:0 0 9px #78987988;transform:scaleY(2)}.string-control .note-name{width:30px;text-align:right}.guitar-art{position:relative;width:106px;height:106px;border-radius:48% 48% 43% 43%;background:linear-gradient(140deg,#dba26c,#b97040);border:5px solid #a45d35;box-shadow:inset 0 0 0 5px #e6bd8d}.guitar-art:before{content:"";position:absolute;width:31px;height:31px;border-radius:50%;background:#47382c;top:34px;left:33px;border:3px solid #ebd3ab}.guitar-art:after{content:"";position:absolute;width:18px;height:87px;left:39px;top:-80px;background:#97643f;border:3px solid #b8895a;border-radius:5px;transform:rotate(0deg);box-shadow:inset 0 0 0 2px #d7b083}.violin-art{position:relative;width:84px;height:90px;background:#b7693d;border:4px solid #8e4d31;border-radius:37% 37% 41% 41%;box-shadow:inset 0 0 0 4px #d8975f}.violin-art:before{content:"";position:absolute;width:24px;height:28px;left:26px;top:-54px;border-radius:4px;background:#a66b42;border:3px solid #865334}.violin-art:after{content:"";position:absolute;left:38px;top:-31px;width:3px;height:114px;background:#ead5b2;box-shadow:8px 0 #ead5b2,-8px 0 #ead5b2}.drum-kit{height:175px;width:350px;position:relative}.drum{position:absolute;display:grid;place-items:center;border:6px solid #9f6850;background:radial-gradient(circle,#fcf8ee 0 59%,#d8c9aa 60% 63%,#bf7959 64%);border-radius:50%;font-size:11px;font-weight:700;color:#8a6352;cursor:pointer;touch-action:manipulation;box-shadow:0 7px 0 #c9c2b4;transition:transform .1s,filter .1s}.drum:active,.drum.playing{transform:translateY(4px) scale(.97);filter:saturate(1.4)}.snare{width:102px;height:73px;left:31px;top:59px}.bass{width:117px;height:93px;left:128px;top:76px}.cymbal{position:absolute;width:105px;height:32px;border:0;border-radius:50%;background:linear-gradient(#d8bc6e,#f5e5a8 45%,#bca05e 70%,#ead78e);box-shadow:0 4px 0 #c8b36f;right:23px;top:28px;font-size:10px;color:#78653d;cursor:pointer;touch-action:manipulation}.cymbal:active,.cymbal.playing{transform:translateY(3px);filter:brightness(1.1)}.note-buttons{display:flex;gap:14px;align-items:center;justify-content:center;flex-wrap:wrap}.note-button{width:62px;height:62px;border-radius:50%;border:1px solid #dce2d8;background:#f7f9f4;color:#55705b;font:600 12px 'DM Mono',monospace;cursor:pointer;touch-action:manipulation;box-shadow:0 4px 0 #e0e5dc;transition:transform .1s,background .1s}.note-button:hover{background:#eaf0e7}.note-button:active,.note-button.playing{transform:translateY(3px);background:#dce9d9;box-shadow:0 1px 0 #c9d7c7}.clarinet-buttons .note-button{border-radius:17px;width:52px;height:68px}.flute-art{width:min(420px,90%);height:18px;border-radius:10px;background:linear-gradient(#e9e6d7,#b8b6a7 45%,#eeecdf);box-shadow:0 4px 4px #45473a20;position:relative}.flute-art:before{content:"";position:absolute;left:0;top:-6px;width:44px;height:30px;border-radius:6px 0 0 6px;background:linear-gradient(#ddd9c8,#9f9c8e)}.flute-art:after{content:"";position:absolute;right:0;top:4px;width:12px;height:3px;background:#878577}.clarinet-art{width:15px;height:107px;border-radius:8px;background:linear-gradient(90deg,#292d29,#4b5147 48%,#20241f);box-shadow:0 5px 6px #303b3022;position:relative}.clarinet-art:before{content:"";position:absolute;top:-27px;left:1px;width:13px;height:30px;border-radius:8px 8px 2px 2px;background:linear-gradient(90deg,#242923,#50554b)}.clarinet-art:after{content:"";position:absolute;top:15px;left:4px;width:6px;height:74px;background:radial-gradient(ellipse at center,#d9c896 2px,transparent 2.5px) 0 0/6px 16px repeat-y}
+@media(max-width:700px){.app-shell{width:min(100% - 36px,560px)}.topbar{height:68px}.version{font-size:8px}.chooser{padding:38px 0}.intro{margin-bottom:27px}.intro h1{font-size:46px}.intro-copy{font-size:14px}.instrument-grid{grid-template-columns:repeat(2,1fr);gap:10px}.instrument-card{min-height:133px;padding:16px}.card-icon{width:34px;height:34px;margin-bottom:10px}.player{padding:24px 0 32px}.player-heading{margin-bottom:18px}.instrument-title h1{font-size:29px}.title-icon{width:42px;height:42px}.tap-tip{font-size:8px}.stage{min-height:340px;padding:28px 18px}.stage:before{width:290px;height:290px}.keys{height:150px}.white-key{font-size:8px;padding-bottom:9px}.black-key{width:8%}.drum-kit{transform:scale(.85);transform-origin:center}.note-buttons{gap:9px}.note-button{width:54px;height:54px}.clarinet-buttons .note-button{width:45px;height:60px}.page-footer{font-size:8px}.footer-note{font-size:10px}}
+@media(max-width:390px){.app-shell{width:calc(100% - 28px)}.version{letter-spacing:.5px}.instrument-card{min-height:122px}.stage{padding-inline:12px}.tap-tip{display:none}.instrument-title{margin-left:auto;margin-right:auto}.player-heading{justify-content:space-between}.drum-kit{transform:scale(.77)}.page-footer span:last-child{max-width:145px;text-align:right}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{transition:none!important}}
+.black-key{width:4.8%}
+@media(max-width:700px){.black-key{width:5.2%}}
+.welcome{margin:auto;text-align:center;padding:65px 20px 90px;max-width:680px}.welcome h1{font:700 clamp(44px,7vw,72px)/1.04 'Playfair Display',serif;letter-spacing:-1.5px;margin:0}.welcome h1 span{color:var(--green);font-style:italic}.welcome .intro-copy{max-width:430px;margin:20px auto 28px}.start-button{border:0;border-radius:999px;background:var(--green);color:white;font:700 15px 'DM Sans',sans-serif;padding:15px 23px;cursor:pointer;box-shadow:0 5px 0 #304636;touch-action:manipulation}.start-button:hover{background:#304d39;transform:translateY(-1px)}.start-button span{font-size:19px;margin-left:9px;vertical-align:-1px}
+.black-key{width:8.5%}.fret-board{max-width:700px}.fret-row{display:grid;grid-template-columns:25px minmax(30px,1fr) auto;align-items:center;gap:10px;min-height:44px}.fret-row .string-label{font:11px 'DM Mono',monospace;color:#68736a;text-align:center}.fret-row .string-line{grid-column:2;grid-row:1}.fret-buttons{grid-column:3;grid-row:1;display:flex;gap:5px;z-index:2}.fret-button{position:relative;min-width:38px;height:34px;padding:0 5px;border:1px solid #e3dfd3;border-radius:8px;background:#fffdf8;color:#787e74;font:10px 'DM Mono',monospace;cursor:pointer;touch-action:manipulation}.fret-button:active,.fret-button.playing{background:#e6eee4}.fret-row.playing .string-line{background:#789879;box-shadow:0 0 10px #789879aa;animation:string-shake .13s ease-in-out 2}@keyframes string-shake{0%,100%{transform:translateX(0) scaleY(1.4)}25%{transform:translateX(-3px) scaleY(2)}75%{transform:translateX(3px) scaleY(2)}}
+.hi-hat,.crash{position:absolute;display:grid;place-items:center;border:0;border-radius:50%;background:linear-gradient(#d8bc6e,#f5e5a8 45%,#bca05e 70%,#ead78e);box-shadow:0 4px 0 #c8b36f;font-size:10px;color:#78653d;cursor:pointer;touch-action:manipulation;transition:transform .1s,filter .1s}.crash{width:105px;height:32px;right:14px;top:23px}.hi-hat{width:73px;height:25px;left:164px;top:36px;background:linear-gradient(#c2a852,#f2e2a2 44%,#a9914e 70%,#e6d38b)}.crash:active,.crash.playing,.hi-hat:active,.hi-hat.playing{transform:translateY(3px);filter:brightness(1.12)}
+.volume-control{margin-left:auto;display:flex;align-items:center;gap:9px;color:#90988e;font:9px 'DM Mono',monospace;letter-spacing:.8px}.volume-control input{width:92px;accent-color:#71876f;cursor:pointer}.player-footer #sound-caption{max-width:48%}
+@media(max-width:700px){.black-key{width:8.5%}.fret-row{grid-template-columns:20px minmax(12px,1fr) auto;gap:6px;min-height:42px}.fret-buttons{gap:3px}.fret-button{min-width:34px;height:32px;font-size:9px}.volume-control input{width:65px}.player-footer{flex-wrap:wrap}.player-footer #sound-caption{max-width:100%;flex:1}.volume-control{margin-left:auto}.drum-kit{transform:scale(.88);transform-origin:center}}
+.controls{flex-direction:column;align-items:center}.key-hint{margin:10px 0 0;color:#90968d;font:10px 'DM Mono',monospace;letter-spacing:.2px;text-align:center}
+
+/* Instrument-specific playing surfaces */
+.instrument-neck{max-width:730px;padding:0 0 4px}
+.neck-labels{display:flex;justify-content:space-between;align-items:center;padding:0 5px 8px;color:#92968c;font:9px 'DM Mono',monospace;letter-spacing:.6px}
+.neck-labels span:nth-child(2){color:#778078}
+.neck{position:relative;display:block;width:100%;height:166px;overflow:hidden;border:7px solid #9b6b45;border-radius:7px;background:linear-gradient(90deg,#c99b6c,#edd1a1 14%,#d8b382 55%,#c49a6a);box-shadow:inset 0 0 14px #6943232b,0 4px 9px #4a342116}
+.guitar-fingerboard{height:176px;background:linear-gradient(90deg,#bd8e62,#e3c298 15%,#d2ad7f);}
+.neck-string{position:absolute;left:0;right:0;min-width:0;border-bottom:1px solid #855d3a;}
+.neck-string:last-of-type{border:0}
+.neck-string-name{position:absolute;left:1%;top:50%;z-index:4;transform:translateY(-50%);padding:2px 3px;border-radius:3px;background:#f8f0dfd9;color:#554839;font:9px 'DM Mono',monospace;pointer-events:none}
+.string-path{position:absolute;left:6%;right:0;top:50%;height:var(--string-weight);transform:translateY(-50%);background:linear-gradient(#78664e,#eee0bd 45%,#8b7554);box-shadow:0 1px 2px #49382366;transition:background .12s,filter .12s;pointer-events:none}
+.neck-string.playing .string-path{background:#92ae83;filter:drop-shadow(0 0 4px #68865d)}
+.position-button{position:absolute;z-index:3;top:50%;width:clamp(20px,3.4vw,27px);height:clamp(20px,3.4vw,27px);padding:0;transform:translate(-50%,-50%);border:1px solid #736044;border-radius:50%;background:#f5ebd4;color:#544936;font:9px 'DM Mono',monospace;box-shadow:0 1px 3px #37281955;cursor:pointer;touch-action:manipulation;}
+.position-button:hover,.position-button.playing,.position-button:active{background:#a8c09e;color:#263728;box-shadow:0 0 0 3px #fff8;}
+.position-button.open-position{left:1%;background:#6d5137;color:#fff4df;border-color:#553c28}
+.fret-wires{position:absolute;inset:0;pointer-events:none}
+.fret-wires i{position:absolute;top:-7px;bottom:-7px;width:2px;background:linear-gradient(90deg,#aaa9a0,#f0eee2,#817e74);box-shadow:1px 0 2px #49382333}
+.neck:before{content:"";position:absolute;left:6%;top:0;bottom:0;z-index:2;width:4px;background:linear-gradient(90deg,#d2c7b4,#f6f0e3,#a99d89);box-shadow:1px 0 2px #49382355;pointer-events:none}
+.violin-fingerboard{height:148px;border-width:5px;border-color:#806044;border-radius:32px;background:linear-gradient(90deg,#40362d,#6e5944 12%,#493c31 50%,#6c5740);}
+.violin-fingerboard .neck-string{border-color:#9e8969}
+.violin-fingerboard .string-path{background:linear-gradient(#b4a183,#f5e5bd 50%,#a18c6e)}
+.violin-fingerboard .neck-string-name{background:#362d25;color:#f6e6c7}
+.violin-fingerboard .position-button{background:#ede0c1;border-color:#76664d;color:#4c4030}
+.violin-fingerboard .position-button.open-position{background:#886444;color:white}
+.fret-wires{z-index:2}.violin-fingerboard .fret-wires{display:none}
+.guitar-art{width:160px;height:76px;border:4px solid #a45d35;border-radius:54% 45% 45% 54%;box-shadow:inset 0 0 0 5px #e6bd8d;}
+.guitar-art:before{width:33px;height:33px;left:60px;top:17px}
+.guitar-art:after{width:122px;height:24px;left:-98px;top:22px;border-radius:6px;transform:none;box-shadow:inset 0 0 0 2px #d7b083;background:linear-gradient(#a2734c,#d1a775,#90623d)}
+.violin-art{width:104px;height:63px;border-radius:40% 20% 20% 40%;}
+.violin-art:before{width:30px;height:24px;left:-32px;top:16px;border-radius:3px}
+.violin-art:after{left:-9px;top:28px;width:112px;height:3px;box-shadow:0 -5px #ead5b2,0 5px #ead5b2,0 10px #ead5b2}
+.wind-controls{width:100%;overflow-x:auto;padding:3px 2px 8px;}
+.wind-row{display:flex;align-items:stretch;justify-content:center;gap:8px;min-width:max-content;margin:auto;}
+.wind-note{display:flex;flex-direction:column;align-items:center;justify-content:space-between;gap:9px;width:clamp(68px,9vw,88px);min-height:77px;padding:10px 6px 8px;border:1px solid #dedfd8;border-radius:12px;background:#fffdf8;color:#5e6e60;cursor:pointer;touch-action:manipulation;box-shadow:0 3px 0 #e4e4dc;transition:background .12s,transform .12s;}
+.wind-note:hover,.wind-note.selected-note,.wind-note:active{background:#e9f0e7;transform:translateY(2px);box-shadow:0 1px 0 #cfd9cd;}
+.fingering{position:relative;display:flex;align-items:center;justify-content:center;gap:4px;width:100%;height:25px;padding:0 2px;border-radius:5px;background:linear-gradient(#e2e0d5,#c7c4b8 48%,#eeeadd);}
+.fingering:before{content:"";position:absolute;left:3px;right:3px;top:50%;height:2px;background:#817f74;transform:translateY(-50%);}
+.finger-key{position:relative;z-index:1;width:10px;height:10px;border:1px solid #a39d8a;border-radius:50%;background:#fffdf7;box-shadow:0 1px 1px #2222;}
+.finger-key.covered{background:#617863;border-color:#4c644e;box-shadow:inset 0 0 0 2px #8aa084;}
+.wind-note-label{font:10px 'DM Mono',monospace;white-space:nowrap;}
+.clarinet-controls .fingering{height:34px;width:28px;flex-direction:column;gap:2px;border-radius:13px;background:linear-gradient(90deg,#282d28,#52574d 50%,#262a25);}
+.clarinet-controls .fingering:before{left:50%;right:auto;top:3px;bottom:3px;width:2px;height:auto;transform:translateX(-50%);background:#bcae85;}
+.clarinet-controls .finger-key{width:9px;height:7px;border-radius:50%;border-color:#c7c0aa;}
+.clarinet-controls .finger-key.covered{background:#d6c89b;border-color:#958b69;box-shadow:0 0 2px #fff8;}
+.flute-art{width:min(480px,94%);height:23px;border-radius:5px;background:linear-gradient(#f8f6e8,#b7b8ae 42%,#eeeede 70%,#a3a49a);box-shadow:0 3px 5px #45473a35;}
+.flute-art:before{left:0;top:-5px;width:45px;height:32px;border-radius:7px 0 0 7px;background:linear-gradient(#eeeada,#aaa99e);}
+.flute-art:after{right:16px;top:6px;width:10px;height:10px;border:2px solid #918f84;border-radius:50%;background:#e2dfd1;box-shadow:-48px 1px 0 -1px #d9d7c9,-96px 1px 0 -1px #d9d7c9,-144px 1px 0 -1px #d9d7c9,-192px 1px 0 -1px #d9d7c9;}
+.clarinet-art{width:23px;height:148px;border-radius:8px 8px 11px 11px;background:linear-gradient(90deg,#181d19,#53594e 42%,#252a25);box-shadow:inset 0 0 0 2px #707466,0 5px 6px #303b3022;}
+.clarinet-art:before{left:3px;width:17px;height:31px;top:-26px;border-radius:9px 9px 2px 2px;background:linear-gradient(90deg,#222722,#555b50);}
+.clarinet-art:after{top:11px;left:8px;width:7px;height:127px;background:radial-gradient(ellipse at center,#d9c896 2px,transparent 2.7px) 0 0/7px 17px repeat-y;}
+.drum-kit{width:min(460px,100%);height:235px;transform:none!important;}
+.drum{border-width:5px;background:radial-gradient(circle,#fcf8ee 0 57%,#d8c9aa 58% 62%,#bf7959 63%);}
+.drum.hi-hat,.drum.crash,.drum.ride{width:88px;height:30px;border:0;border-radius:50%;background:linear-gradient(#c5aa58,#f5e6a9 45%,#aa914f 70%,#e6d58e);box-shadow:0 4px 0 #a99453;color:#6b5a32;}
+.drum.hi-hat{left:3%;top:26%;}
+.drum.crash{left:7%;right:auto;top:3%;width:clamp(72px,23vw,105px);}
+.drum.ride{right:2%;top:6%;width:clamp(75px,23vw,105px);}
+.drum.tomHigh,.drum.tomMid,.drum.tomLow{width:clamp(57px,17vw,76px);height:clamp(52px,15vw,66px);border-width:5px;font-size:9px;}
+.drum.tomHigh{left:32%;top:20%;}
+.drum.tomMid{left:51%;top:24%;width:clamp(62px,18vw,82px);height:clamp(56px,16vw,70px);}
+.drum.tomLow{right:2%;top:51%;width:clamp(68px,20vw,91px);height:clamp(60px,18vw,78px);}
+.drum.snare{left:15%;top:57%;width:clamp(70px,21vw,92px);height:clamp(56px,16vw,69px);}
+.drum.bass{left:38%;top:53%;width:clamp(88px,27vw,116px);height:clamp(78px,22vw,94px);}
+@media(max-width:700px){.neck{height:148px}.guitar-fingerboard{height:157px}.violin-fingerboard{height:132px}.neck-string-name{left:1px;font-size:8px;padding:1px}.position-button{font-size:8px}.wind-row{justify-content:flex-start}.wind-note{width:70px}.drum-kit{height:222px;transform:none!important}}
+@media(max-width:390px){.drum-kit{width:350px;min-width:350px;height:235px;transform:scale(.86)!important}}
+@media(max-width:360px){.drum-kit{transform:scale(.74)!important}}
+
+.stop-sound{border:1px solid #e4dfd3;border-radius:999px;background:#fffdf8;color:#58675a;padding:7px 11px;font:600 10px 'DM Sans',sans-serif;cursor:pointer;touch-action:manipulation;transition:background .12s,color .12s}.stop-sound:hover,.stop-sound:focus-visible{background:#e9f0e7;color:#304d39;outline:2px solid #b9c9b7;outline-offset:2px}.stop-sound:active{transform:translateY(1px)}@media(max-width:700px){.stop-sound{order:3;margin-left:auto}.volume-control{order:4}}
+
+.note-info{flex-basis:100%;padding:8px 11px;border:1px solid #e8e4da;border-radius:9px;background:#fffdf8;color:#59675b;font:11px 'DM Mono',monospace;line-height:1.45}.player-footer #sound-caption{max-width:45%}@media(max-width:700px){.player-footer #sound-caption{max-width:100%}.note-info{order:5}}
+
+.keys{width:min(740px,100%)}.black-key{width:4.2%}@media(max-width:700px){.black-key{width:4.2%}}
+
+.player-footer{flex-wrap:wrap}
+/* Fingering diagrams use labeled instrument keys rather than generic dots. */
+.fingering{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-template-rows:repeat(2,18px);align-items:center;justify-items:center;gap:3px;width:100%;height:auto;min-height:43px;padding:5px 4px;background:linear-gradient(#e2e0d5,#c7c4b8 48%,#eeeadd);}
+.fingering:before{display:none}
+.finger-key{display:flex;align-items:center;justify-content:center;width:100%;max-width:20px;height:17px;border-radius:50%;font:6px 'DM Mono',monospace;line-height:1;color:#52604f;}
+.finger-key.covered{color:#fff;background:#617863;border-color:#4c644e;box-shadow:inset 0 0 0 1px #8aa084;}
+.wind-note{min-height:116px;width:clamp(78px,9vw,91px);}
+.clarinet-controls .fingering{width:100%;height:auto;min-height:43px;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));grid-template-rows:repeat(2,18px);flex-direction:initial;gap:2px;padding:5px 3px;border-radius:8px;}
+.clarinet-controls .fingering:before{display:none}
+.clarinet-controls .finger-key{width:100%;max-width:20px;height:17px;border-radius:50%;font-size:6px;}
+.black-key{display:flex;align-items:flex-end;justify-content:center;padding:0 1px 5px;color:#f6f4ec;font:7px 'DM Mono',monospace;white-space:nowrap;overflow:hidden}
+@media(max-width:700px){.wind-note{width:82px;min-height:112px}.finger-key,.clarinet-controls .finger-key{font-size:5px}}
+@media(max-width:700px){.controls:has(.keys){overflow-x:auto;align-items:flex-start;padding-bottom:10px}.keys{width:660px;max-width:none;flex:none}}
+.flute-fingering{grid-template-columns:repeat(8,minmax(0,1fr));grid-template-rows:1fr;min-height:35px;padding:5px 3px;border-radius:6px;}
+.flute-fingering .finger-key{max-width:13px;height:13px;font-size:5px;}
+.clarinet-fingering{width:44px;min-height:78px;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(5,14px);padding:4px 3px;border-radius:12px;}
+.clarinet-fingering .finger-key{max-width:18px;height:13px;font-size:5px;}
+.wind-note{min-height:126px;}
+@media(max-width:700px){.wind-note{min-height:120px}.clarinet-fingering{min-height:74px}}/* Instrument drawings and note-aligned selectors */
+.wind-controls{overflow-x:auto;max-width:100%;}
+.wind-row{width:max-content;min-width:100%;}
+.wind-choice{min-width:82px;padding:10px 12px;border:1px solid #dedfd8;border-radius:10px;background:#fffdf8;color:#5e6e60;font:600 11px 'DM Mono',monospace;cursor:pointer;touch-action:manipulation;box-shadow:0 3px 0 #e4e4dc;transition:background .12s,transform .12s;}
+.wind-choice:hover,.wind-choice.selected-note,.wind-choice:active{background:#e9f0e7;transform:translateY(2px);box-shadow:0 1px 0 #cfd9cd;}
+.flute-art,.clarinet-art{width:min(700px,100%);height:auto;min-height:160px;background:transparent;box-shadow:none;display:flex;align-items:center;justify-content:center;}
+.flute-diagram{display:block;width:min(700px,100%);height:auto;max-height:170px;overflow:visible;}
+.flute-tube,.flute-joint{fill:url(#fluteMetal);stroke:#898c83;stroke-width:2;}
+.flute-rod{fill:none;stroke:#7e8279;stroke-width:2.5;}
+.lip-plate{fill:url(#fluteMetal);stroke:#85897f;stroke-width:2;}
+.embouchure{fill:#303a34;stroke:#666b61;stroke-width:2;}
+.joint-line{stroke:#85897f;stroke-width:2;}
+.wind-key .key-rim{fill:url(#fluteMetal);stroke:#70766d;stroke-width:2;}
+.flute-art .wind-key.open .key-pad{fill:#303a34;stroke:#222b24;}
+.flute-art .wind-key.pressed .key-pad{fill:#789579;stroke:#425b46;}
+.wind-key text{font:8px 'DM Mono',monospace;text-anchor:middle;fill:#3e4d42;}
+.clarinet-diagram{display:block;width:auto;height:180px;max-width:100%;overflow:visible;}
+.clarinet-mouthpiece{fill:#242823;stroke:#101511;stroke-width:2;}
+.clarinet-barrel,.clarinet-joint,.clarinet-bell{fill:url(#clarinetBody);stroke:#151a16;stroke-width:2;}
+.clarinet-joint-ring{fill:none;stroke:url(#clarinetSilver);stroke-width:5;}
+.clarinet-art .wind-key .key-rim{fill:url(#clarinetSilver);stroke:#777463;stroke-width:2;}
+.clarinet-art .wind-key.open .key-pad{fill:#121713;stroke:#080b09;}
+.clarinet-art .wind-key.pressed .key-pad{fill:#789579;stroke:#425b46;}
+.clarinet-tone-hole{fill:#101511;stroke:#786d4d;stroke-width:2;}
+.clarinet-art .wind-key text{font-size:8px;fill:#eee7d0;}
+.violin-art{width:min(470px,100%);height:auto;min-height:115px;border:0;border-radius:0;background:transparent;box-shadow:none;display:flex;align-items:center;justify-content:center;}
+.violin-art:before,.violin-art:after{display:none;}
+.violin-diagram{display:block;width:min(470px,100%);height:auto;max-height:125px;overflow:visible;}
+.violin-neck-wood{fill:#4b382b;stroke:#2f241c;stroke-width:2;}
+.violin-body{fill:url(#violinWood);stroke:#68381f;stroke-width:4;}
+.violin-waist,.violin-f-hole{fill:none;stroke:#efc18b;stroke-width:3;stroke-linecap:round;}
+.violin-tailpiece{fill:#43352b;stroke:#2b241e;stroke-width:2;}
+.violin-bridge{fill:none;stroke:#e7d6b2;stroke-width:8;stroke-linecap:round;}
+.violin-string-lines{fill:none;stroke:#ead9b7;stroke-width:1.3;}
+.violin-scroll{fill:none;stroke:#6d442a;stroke-width:6;stroke-linecap:round;}
+.violin-bridge{position:absolute;z-index:4;left:94%;top:4%;bottom:4%;width:8px;transform:skewY(-8deg);border-radius:4px;background:linear-gradient(90deg,#bfa77a,#fff0c8,#a88a5d);box-shadow:1px 1px 2px #241b11;pointer-events:none;}
+.guitar-neck .position-button{opacity:0;border-color:transparent;background:transparent;color:transparent;box-shadow:none;border-radius:5px;}
+.guitar-neck .position-button:hover,.guitar-neck .position-button:focus-visible,.guitar-neck .position-button.playing,.guitar-neck .position-button:active{opacity:1;border-color:#51684f;background:#8ca683e8;color:#203322;box-shadow:0 0 0 2px #fff9;}
+.guitar-neck .position-button.open-position{background:transparent;color:transparent;}
+.guitar-neck .position-button.open-position:hover,.guitar-neck .position-button.open-position:focus-visible,.guitar-neck .position-button.open-position.playing,.guitar-neck .position-button.open-position:active{background:#8ca683e8;color:#203322;}
+@media(max-width:700px){.flute-art,.clarinet-art{min-height:130px}.flute-diagram{width:660px;max-width:none}.clarinet-diagram{height:155px}.violin-art{min-height:100px}.violin-bridge{left:94%}.wind-choice{min-width:75px;font-size:10px}}.guitar-art{width:min(470px,100%);height:auto;min-height:115px;border:0;border-radius:0;background:transparent;box-shadow:none;display:flex;align-items:center;justify-content:center;}
+.guitar-art:before,.guitar-art:after{display:none;}
+.guitar-diagram{display:block;width:min(470px,100%);height:auto;max-height:125px;overflow:visible;}
+.guitar-body{fill:url(#guitarWood);stroke:#754626;stroke-width:4;}
+.guitar-neck-wood{fill:#765038;stroke:#432f21;stroke-width:2;}
+.guitar-head{fill:#8a5c38;stroke:#523721;stroke-width:2;}
+.guitar-soundhole{fill:#34251c;stroke:#e0bc8f;stroke-width:5;}
+.guitar-bridge{fill:none;stroke:#36271e;stroke-width:9;stroke-linecap:round;}
+.guitar-strings{fill:none;stroke:#eadbb9;stroke-width:1.2;}
+.guitar-fret-preview{fill:none;stroke:#c3c0b4;stroke-width:3;}
+.guitar-tuner{fill:#d8cfb5;stroke:#4b3727;stroke-width:2;}
+.clarinet-art:before,.clarinet-art:after,.flute-art:before,.flute-art:after{display:none;}
+.clarinet-art .wind-key.open .key-pad{fill:#101511;}
+.position-button.selected-position{opacity:1;border-color:#3f6444;background:#92b18a;color:#172b1a;box-shadow:0 0 0 2px #fff9}.position-button.open-position.selected-position{background:#92b18a;color:#172b1a}
+
+.drum{touch-action:manipulation}
+
+.rhythm-entry{width:100%;display:flex;justify-content:center;margin-top:16px}.rhythm-launch,.rhythm-action{border:1px solid #d9e0d5;border-radius:999px;background:#eef3eb;color:#415e4b;padding:11px 17px;font:700 12px 'DM Sans',sans-serif;cursor:pointer;touch-action:manipulation}.rhythm-launch span{padding-left:8px}.song-picker,.rhythm-game{width:min(850px,100%);margin:18px auto 0;padding:18px;border:1px solid #e7e3d9;border-radius:15px;background:#fffdf8}.rhythm-heading,.rhythm-topline,.game-stats,.game-actions{display:flex;align-items:center;justify-content:space-between;gap:12px}.rhythm-heading h2{font:700 20px 'Playfair Display',serif;margin:0}.song-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:15px 0}.song-card{min-height:92px;text-align:left;padding:13px;border:1px solid #e5e2d9;border-radius:12px;background:#fff;color:#344238;cursor:pointer;touch-action:manipulation}.song-card.selected{border-color:#66816a;background:#eef4ec;box-shadow:0 0 0 2px #66816a22}.song-card strong,.song-card span{display:block}.song-card span{font-size:11px;color:#788177;margin-top:7px}.rhythm-action:disabled{opacity:.45;cursor:not-allowed}.rhythm-topline{margin-bottom:12px;font-size:12px}.game-stats{justify-content:flex-start;flex-wrap:wrap;font:11px 'DM Mono',monospace;color:#657264}.game-stats span{padding:6px 9px;border-radius:7px;background:#f4f3ec}.game-stats #game-feedback{margin-left:auto;color:#527252;font-weight:700}.note-track{--lanes:7;position:relative;height:286px;margin:12px auto 0;width:min(700px,100%);overflow:hidden;border:1px solid #e5e2d9;border-radius:10px;background:repeating-linear-gradient(90deg,transparent 0 calc(100% / var(--lanes) - 1px),#e5e2d9 calc(100% / var(--lanes) - 1px) calc(100% / var(--lanes))),linear-gradient(#fbfaf6,#f0f1e9)}.hit-line{position:absolute;z-index:2;left:0;right:0;bottom:27px;height:3px;background:#d17b57;box-shadow:0 0 10px #d17b5766}.falling-note{position:absolute;width:clamp(22px,4vw,34px);height:18px;border-radius:7px;background:#5c795f;box-shadow:0 3px 0 #3e5a42;transform:translate(-50%,-50%);pointer-events:none}.falling-note.drum-note{background:#bc7960;box-shadow:0 3px 0 #915941}.game-lanes{display:grid;grid-template-columns:repeat(var(--lanes),minmax(0,1fr));gap:5px;width:min(700px,100%);margin:7px auto}.game-lane{min-height:42px;padding:6px 3px;border:1px solid #dce2d8;border-radius:8px;background:#fff;color:#536352;font:600 10px 'DM Mono',monospace;cursor:pointer;touch-action:manipulation}.game-lane:active,.game-lane.playing{background:#e4eee1}.game-progress{display:flex;align-items:center;gap:10px;margin-top:7px;color:#788177;font:10px 'DM Mono',monospace}.game-progress progress{flex:1;height:8px;accent-color:#6c8b70}.game-actions{justify-content:center;margin-top:12px}.secondary-action{background:#fff;border-color:#e5e2d9;color:#68736a}.game-key-hint{text-align:center;margin:9px 0 0;color:#858d83;font:10px 'DM Mono',monospace}.hidden{display:none!important}@media(max-width:650px){.song-list{grid-template-columns:1fr}.song-card{min-height:68px}.song-picker,.rhythm-game{padding:12px}.note-track{height:245px}.game-lane{font-size:9px;min-height:46px;padding:4px 1px}.rhythm-topline{font-size:10px}}
+
+/* Full-range piano: fixed-width keys inside a horizontal scroller. */
+.controls:has(.keys){width:100%;overflow-x:auto;align-items:flex-start;padding:0 0 10px;justify-content:flex-start}
+.keys{position:relative;display:flex;flex:none;width:max-content;max-width:none;height:174px}
+.white-key{position:relative;flex:0 0 28px;width:28px;min-width:28px;height:174px;padding:0 1px 5px;font-size:7px}
+.black-key{position:absolute;top:0;z-index:2;flex:none;width:18px;height:106px;padding:0 1px 5px;font-size:6px}
+@media(max-width:700px){.keys{width:max-content}.white-key{flex-basis:28px;width:28px;min-width:28px}.black-key{width:18px;height:100px}}
+
+/* Interactive instrument keys, strings, and bow controls */
+.wind-key{cursor:pointer;pointer-events:all;outline:none}
+.wind-key:focus-visible .key-rim{stroke:#526d54;stroke-width:3}
+.wind-key .key-pad{transition:transform .12s,fill .12s}
+.wind-key.pressed .key-pad{transform:translateY(2px)}
+.wind-key .wind-finger{fill:#d9a783;stroke:#845d43;stroke-width:1.5;opacity:0;pointer-events:none;transition:opacity .12s,transform .12s}
+.wind-key.pressed .wind-finger{opacity:.96;transform:translateY(-2px)}
+.embouchure{cursor:pointer;transition:fill .12s,stroke .12s}
+.embouchure.high-register{fill:#789579;stroke:#425b46}
+.guitar-svg-string{cursor:pointer;outline:none}
+.guitar-string-visible{stroke:#eadbb9;stroke-width:1.2;pointer-events:none;transition:stroke .1s,stroke-width .1s}
+.guitar-string-hit{stroke:transparent;stroke-width:15;pointer-events:stroke}
+.guitar-svg-string:hover .guitar-string-visible,.guitar-svg-string:focus-visible .guitar-string-visible,.guitar-svg-string.strummed .guitar-string-visible{stroke:#8fac82;stroke-width:2.6}
+.bow-control{align-self:center;border:1px solid #d9dfd4;border-radius:999px;background:#eef3eb;color:#415e4b;padding:11px 17px;font:700 12px 'DM Sans',sans-serif;cursor:pointer;touch-action:manipulation;transition:background .12s,transform .12s}
+.bow-control:active,.bow-control.playing{background:#dce9d9;transform:translateY(2px)}
+.bow-control:disabled{opacity:.48;cursor:not-allowed}
+
+/* Larger playable models that scale with the available game area. */
+.stage{min-height:clamp(480px,68vh,760px);padding:clamp(22px,4vw,50px);overflow:visible}
+.instrument-art{flex:0 0 auto;margin-bottom:clamp(22px,4vh,40px)}
+.flute-diagram{width:min(100%,1050px);max-height:min(34vh,340px)}
+.clarinet-diagram{height:min(68vh,680px);max-height:680px;width:auto;max-width:100%}
+.violin-diagram{width:min(100%,850px);max-height:min(31vh,300px)}
+.guitar-diagram{width:min(100%,1000px);max-height:min(32vh,320px)}
+.string-board{width:min(100%,960px)}
+.neck{height:220px}
+.violin-fingerboard{height:205px}
+.guitar-fingerboard{height:235px}
+.position-button{width:clamp(26px,3.2vw,36px);height:clamp(26px,3.2vw,36px);font-size:11px}
+.keys{height:238px}
+.white-key{flex-basis:36px;width:36px;min-width:36px;height:238px;font-size:9px}
+.black-key{width:23px;height:145px;font-size:8px}
+.drum-kit{width:min(600px,100%);height:330px}
+.drum.snare{width:clamp(90px,12vw,128px);height:clamp(72px,9vw,96px)}
+.drum.bass{width:clamp(112px,15vw,160px);height:clamp(98px,12vw,132px)}
+.drum.tomHigh,.drum.tomMid,.drum.tomLow{width:clamp(72px,9vw,98px);height:clamp(64px,8vw,88px);font-size:11px}
+.drum.hi-hat,.drum.crash,.drum.ride{width:clamp(90px,12vw,130px);height:38px;font-size:11px}
+@media(max-width:700px){
+  .stage{min-height:clamp(430px,70vh,650px);padding:24px 14px;overflow:visible}
+  .flute-diagram{width:100%;max-width:100%;max-height:none}
+  .clarinet-diagram{height:min(62vh,590px);max-width:100%}
+  .violin-diagram,.guitar-diagram{width:100%;max-height:none}
+  .neck{height:190px}.guitar-fingerboard{height:210px}.violin-fingerboard{height:180px}
+  .position-button{width:30px;height:30px}
+  .keys{height:210px}.white-key{height:210px;flex-basis:32px;width:32px;min-width:32px}.black-key{width:21px;height:128px}
+  .drum-kit{width:min(520px,100%);height:275px}
+}
+@media(max-width:390px){
+  .stage{padding-inline:10px}
+  .clarinet-diagram{height:min(58vh,500px)}
+  .drum-kit{width:100%;min-width:0;height:250px;transform:none!important}
+}
+
+/* Clarinet model: black grenadilla body, silver Boehm keywork and accessible viewing controls. */
+.clarinet-art{width:100%;min-height:0;height:auto;overflow:visible;display:flex;justify-content:center;align-items:center}
+.clarinet-diagram{display:block;width:auto;height:min(76vh,820px);max-height:820px;max-width:100%;overflow:visible;filter:drop-shadow(0 15px 17px #10151035);transform-origin:center;transition:transform .28s ease}
+.clarinet-diagram.rotated{transform:rotate(90deg)}
+.clarinet-mouthpiece{fill:url(#clarinetBody);stroke:#090d0b;stroke-width:4}
+.clarinet-reed{fill:url(#clarinetReed);stroke:#4d3325;stroke-width:2}
+.clarinet-ligature{fill:none;stroke:url(#clarinetSilver);stroke-width:8;stroke-linecap:round}
+.clarinet-ligature-screw{fill:url(#clarinetSilver);stroke:#656861;stroke-width:2}
+.clarinet-barrel,.clarinet-joint{fill:url(#clarinetBody);stroke:#070a08;stroke-width:4}
+.clarinet-bell{fill:url(#clarinetBell);stroke:#050807;stroke-width:5}
+.clarinet-bell-rim{fill:url(#clarinetSilver);stroke:#60635d;stroke-width:3}
+.clarinet-bell-opening{fill:#080c0a;stroke:#555951;stroke-width:3}
+.clarinet-shadow{fill:#252a24;opacity:.16}
+.clarinet-body-highlight{fill:none;stroke:#aeb5a9;stroke-width:4;opacity:.24;stroke-linecap:round}
+.clarinet-joint-ring{fill:none;stroke:url(#clarinetSilver);stroke-width:10;stroke-linecap:round}
+.clarinet-tone-holes ellipse{fill:#030605;stroke:#86877d;stroke-width:4}
+.clarinet-key-rod{fill:none;stroke:url(#clarinetSilver);stroke-width:8;stroke-linecap:round}
+.clarinet-post{fill:url(#clarinetSilver);stroke:#6d7069;stroke-width:2}
+.clarinet-key-arm{fill:none;stroke:url(#clarinetSilver);stroke-width:7;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+.clarinet-art .wind-key .key-rim{fill:url(#clarinetSilver);stroke:#555a53;stroke-width:3}
+.clarinet-art .wind-key .key-pad{fill:#171c18;stroke:#090d0b;stroke-width:2;transition:transform .1s,fill .1s}
+.clarinet-art .wind-key.pressed .key-pad{fill:#88927f;stroke:#f5f0dc;transform:translateY(2px)}
+.clarinet-art .wind-key .wind-finger{fill:#d9a783;stroke:#835d45;stroke-width:2;opacity:0;pointer-events:none;transition:opacity .12s,transform .12s}
+.clarinet-art .wind-key.pressed .wind-finger{opacity:.96;transform:translateY(-2px)}
+.clarinet-art .wind-key text{font:600 11px 'DM Mono',monospace;fill:#f3efdf;stroke:#101511;stroke-width:2px;paint-order:stroke;pointer-events:none}
+.clarinet-key{cursor:pointer;touch-action:none;outline:none}
+.clarinet-key:focus-visible .key-rim{stroke:#9eb69b;stroke-width:5}
+.clarinet-thumb-rest{fill:url(#clarinetSilver);stroke:#4b5049;stroke-width:4}
+.clarinet-thumb-rest-highlight{fill:none;stroke:#fffbe9;stroke-width:4;stroke-linecap:round;opacity:.7}
+.clarinet-view-tools{z-index:2;width:100%;display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:7px;padding:8px 4px}
+.clarinet-view-button{min-width:72px;min-height:40px;padding:8px 12px;border:1px solid #d7ddd4;border-radius:999px;background:#fffdf8;color:#475a4a;font:600 11px 'DM Sans',sans-serif;cursor:pointer;touch-action:manipulation;transition:background .12s,border-color .12s,transform .12s}
+.clarinet-view-button:hover,.clarinet-view-button.selected{background:#e8f0e6;border-color:#90a68f}
+.clarinet-view-button:active{transform:translateY(1px)}
+.clarinet-view-button.zoom-button{min-width:42px;font-size:17px}
+.clarinet-view-button.rotate-button{min-width:44px;font-size:17px}
+@media(max-width:700px){.clarinet-diagram{height:min(65vh,620px);max-height:620px}.clarinet-view-tools{gap:5px}.clarinet-view-button{min-width:64px;min-height:44px;padding:8px 10px}}
+@media(max-width:390px){.clarinet-diagram{height:min(58vh,500px)}.clarinet-view-tools{gap:4px}.clarinet-view-button{min-width:59px;padding:7px 9px}}
+
+/* Distinct transparent hit zones make the existing clarinet keys easier to tap. */
+.clarinet-key .clarinet-touch-target{fill:transparent;stroke:none;pointer-events:all;touch-action:none}
+.clarinet-key{pointer-events:all}
+.clarinet-diagram{perspective:1000px}
+.clarinet-diagram.rotated{transform:perspective(1000px) rotateY(13deg) rotateZ(-1.5deg)}
+
+/* Clarinet chart and practice tools. */
+.clarinet-practice{width:min(100%,920px);margin:12px auto 4px;padding:14px;border:1px solid #e7e3d9;border-radius:14px;background:#fffdf8;color:#38453a}
+.clarinet-practice-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.clarinet-practice-head strong{font:700 15px 'DM Sans',sans-serif}
+.clarinet-practice-status{font:11px 'DM Mono',monospace;color:#687468}
+.clarinet-practice-status.practice-success{color:#327345;font-weight:700}
+.clarinet-practice-actions{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.clarinet-practice-button{min-height:38px;padding:8px 12px;border:1px solid #d7ddd4;border-radius:999px;background:#f3f6f0;color:#435847;font:600 11px 'DM Sans',sans-serif;cursor:pointer;touch-action:manipulation}
+.clarinet-practice-button[aria-pressed=true]{background:#e1ecdf;border-color:#8fa88d}
+.clarinet-chart{border-top:1px solid #e9e7df;padding-top:9px}
+.clarinet-chart summary{cursor:pointer;font:600 12px 'DM Sans',sans-serif;color:#526452;min-height:32px;display:flex;align-items:center}
+.clarinet-chart-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(138px,1fr));gap:6px;max-height:220px;overflow:auto;padding:6px 2px}
+.clarinet-chart-note{display:flex;flex-direction:column;align-items:flex-start;gap:3px;min-height:58px;padding:7px 9px;border:1px solid #e6e8df;border-radius:9px;background:#fff;color:#435347;cursor:pointer;text-align:left;touch-action:manipulation}
+.clarinet-chart-note:hover,.clarinet-chart-note:focus-visible{border-color:#9db29a;background:#f1f6ee}
+.clarinet-chart-note strong{font:700 12px 'DM Mono',monospace}
+.clarinet-chart-note span{font:10px 'DM Sans',sans-serif;color:#667265}
+.clarinet-chart-note small{font:9px 'DM Mono',monospace;color:#899186;white-space:normal}
+.clarinet-key.guide-key .key-rim{stroke:#f4d36f;stroke-width:6;filter:drop-shadow(0 0 7px #ffdf78)}
+.clarinet-key.guide-key .clarinet-touch-target{fill:#f3d46b30}
+.clarinet-mouthpiece{cursor:pointer;pointer-events:all;transition:filter .12s}
+.clarinet-mouthpiece:focus-visible,.clarinet-mouthpiece.mouthpiece-active{filter:drop-shadow(0 0 8px #d7be6a)}
+@media(max-width:600px){.clarinet-practice{padding:11px}.clarinet-practice-status{width:100%}.clarinet-chart-list{grid-template-columns:repeat(2,minmax(0,1fr));max-height:180px}}
+.clarinet-chart-source{margin:7px 2px 2px;color:#879084;font:10px 'DM Sans',sans-serif}
+.clarinet-art .wind-key .key-rim{filter:drop-shadow(0 2px 2px #03050488)}
+.clarinet-art .wind-key.ring .key-rim{fill:url(#clarinetSilver);stroke:#e7e4d5;stroke-width:3}
+.clarinet-art .wind-key .key-pad{filter:inset(0 0 3px #0008)}
+.clarinet-art .wind-key.pressed .key-pad{filter:drop-shadow(0 1px 2px #040605)}
+.clarinet-cup{fill:url(#clarinetSilver);stroke:#777a73;stroke-width:2;filter:drop-shadow(0 2px 2px #03050488);pointer-events:none}
+.clarinet-art .wind-key .key-rim{position:relative}
+/* Clarinet hands: rounded palms sit behind the curved, articulated fingers. */
+.clarinet-hand-palm{fill:#c88f70;stroke:#845c46;stroke-width:3;opacity:.34;filter:drop-shadow(0 3px 3px #05070688);pointer-events:none}
+.clarinet-hand-palm.right{fill:#bf8769}
+.clarinet-finger-outline{fill:none;stroke:#79533f;stroke-width:17;stroke-linecap:round;stroke-linejoin:round;opacity:.58;pointer-events:none;transition:opacity .16s,stroke-width .16s,transform .16s}
+.clarinet-finger-segment{fill:none;stroke:#d9a88b;stroke-width:12;stroke-linecap:round;stroke-linejoin:round;opacity:.68;pointer-events:none;transition:opacity .16s,stroke-width .16s,transform .16s}
+.clarinet-key.pressed .clarinet-finger-outline{opacity:.9;stroke-width:18;transform:translate(1px,2px)}
+.clarinet-key.pressed .clarinet-finger-segment{opacity:1;stroke-width:13;transform:translate(1px,2px)}
+.clarinet-key.thumb .clarinet-finger-outline,.clarinet-key.thumb .clarinet-finger-segment{stroke-width:10}
+.clarinet-key[data-finger*="little"] .clarinet-finger-outline{stroke-width:13}
+.clarinet-key[data-finger*="little"] .clarinet-finger-segment{stroke-width:9}
+.clarinet-key[data-finger*="thumb"] .clarinet-finger-segment{stroke:#d2a084}
+.clarinet-thumb-dorsum,.clarinet-right-thumb{fill:none;stroke:#d1a085;stroke-width:12;stroke-linecap:round;stroke-linejoin:round;opacity:.7;pointer-events:none;filter:drop-shadow(0 1px 1px #75503d)}
+.clarinet-right-thumb{stroke-width:14;opacity:.46}
+.clarinet-computer-key{font:700 10px 'DM Mono',monospace;fill:#f5d77b;stroke:#161a15;stroke-width:2px;paint-order:stroke;pointer-events:none}
+.clarinet-key.playing .key-rim,.clarinet-key.pressed .key-rim{stroke:#f3d77d;stroke-width:4;filter:drop-shadow(0 0 5px #f6df8a)}
+.clarinet-keyboard-guide{border-top:1px solid #e9e7df;padding-top:8px;margin:7px 0}
+.clarinet-keyboard-guide summary{cursor:pointer;min-height:34px;display:flex;align-items:center;color:#526452;font:600 12px 'DM Sans',sans-serif}
+.clarinet-keyboard-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:5px;padding:5px 0 8px}
+.clarinet-keyboard-row{display:flex;align-items:center;gap:8px;min-height:30px;color:#667265;font:10px 'DM Sans',sans-serif}
+.clarinet-keyboard-row kbd{min-width:27px;padding:4px 6px;text-align:center;border:1px solid #dfe3d9;border-radius:5px;background:#fff;color:#405341;font:700 10px 'DM Mono',monospace;box-shadow:0 1px 1px #0001}
+@media(max-width:600px){.clarinet-keyboard-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.clarinet-art .wind-key text.clarinet-computer-key{font-size:9px;fill:#f5d77b;stroke:#161a15;stroke-width:2px;paint-order:stroke}
+.audio-status{padding:3px 7px;border-radius:999px;background:#edf1e9;color:#667365;font:600 9px 'DM Mono',monospace;white-space:nowrap}
+.audio-status[data-state=on]{background:#e8f1e6;color:#356341}
+.audio-status[data-state=waiting]{background:#f5f0dd;color:#8b7540}
+.audio-status[data-state=error]{background:#f7e8e5;color:#a34e46}
+.sound-dot[data-state=on]{background:#70a06d}
+.sound-dot[data-state=waiting]{background:#d0ac54}
+.sound-dot[data-state=error]{background:#c46c61}
+/* Only the transparent circle receives pointer events; rods, labels and finger art do not. */
+.clarinet-key{pointer-events:none}
+.clarinet-key > *{pointer-events:none}
+.clarinet-key > .clarinet-touch-target{pointer-events:all}
+/* Clarinet finish pass: deeper lacquer, machined keywork, and quieter hand shading. */
+.clarinet-art .clarinet-body-highlight{stroke:#d5d8ca;stroke-width:2.8;opacity:.3}
+.clarinet-art .clarinet-body-glint{fill:none;stroke:#f2f0db;stroke-width:1.25;opacity:.18;stroke-linecap:round;pointer-events:none}
+.clarinet-art .clarinet-body-edge{fill:none;stroke:#000;stroke-width:2;opacity:.55;pointer-events:none}
+.clarinet-key-rod-shadow{fill:none;stroke:#151914;stroke-width:10;stroke-linecap:round;opacity:.95}
+.clarinet-art .clarinet-key-rod{stroke-width:5.2;filter:drop-shadow(0 1px 1px #080a08)}
+.clarinet-art .clarinet-key-arm-shadow{fill:none;stroke:#20241f;stroke-width:8;stroke-linecap:round;stroke-linejoin:round}
+.clarinet-art .clarinet-key-arm{stroke-width:4.8;filter:drop-shadow(0 1px 1px #070908)}
+.clarinet-art .clarinet-post{r:3.6;filter:drop-shadow(0 1px 1px #050706)}
+.clarinet-art .clarinet-cup{fill:url(#clarinetSilver);stroke:#555950;stroke-width:1.5}
+.clarinet-art .clarinet-cup-screw{fill:#434841;stroke:#f4f1e2;stroke-width:.8}
+.clarinet-art .clarinet-hinge{fill:url(#clarinetSilver);stroke:#62665f;stroke-width:1.2}
+.clarinet-art .clarinet-hinge-pin{fill:#454a43;stroke:#efeee2;stroke-width:.6}
+.clarinet-art .clarinet-joint-ring{stroke-width:7.2;filter:drop-shadow(0 1px 1px #050706)}
+.clarinet-art .clarinet-bell-rim{stroke-width:2}
+.clarinet-art .clarinet-hand-palm{fill:url(#clarinetSkin);stroke:#775541;stroke-width:2;opacity:.44;filter:drop-shadow(0 2px 3px #05070666)}
+.clarinet-art .clarinet-hand-palm.right{fill:url(#clarinetSkin)}
+.clarinet-art .clarinet-hand-crease{fill:none;stroke:#714f3f;stroke-width:2;stroke-linecap:round;opacity:.34;pointer-events:none}
+.clarinet-art .clarinet-finger-outline{stroke:#654838;stroke-width:14;opacity:.4}
+.clarinet-art .clarinet-finger-segment{stroke:url(#clarinetFinger);stroke-width:10;opacity:.88;filter:drop-shadow(0 1px 1px #08090788)}
+.clarinet-art .clarinet-key.pressed .clarinet-finger-segment{stroke-width:11;transform:translate(1px,2px)}
+.clarinet-art .clarinet-key.pressed .key-rim,.clarinet-art .clarinet-key.pressed .clarinet-cup{transform:translateY(1px)}
+.clarinet-art .clarinet-key.pressed .key-pad{fill:#aaa995;stroke:#f2edda;transform:translateY(2px)}
+.clarinet-art .clarinet-key .wind-finger{fill:url(#clarinetFinger);stroke:#805c47;stroke-width:1.5}
+.clarinet-art .clarinet-key.ring .key-rim{fill:url(#clarinetSilver);stroke:#fbf8e8;stroke-width:2.4}
+.clarinet-art .clarinet-hand-palm{opacity:.28}
+.clarinet-art .clarinet-finger-outline{opacity:.24}
+.clarinet-art .clarinet-finger-segment{opacity:.46}
+.clarinet-art .clarinet-key.pressed .clarinet-finger-outline{opacity:.72}
+.clarinet-art .clarinet-key.pressed .clarinet-finger-segment{opacity:.98}
+.clarinet-art .clarinet-post{filter:drop-shadow(0 1px 1px #050706)}
+
+/* Rebuilt clarinet: linked, machined keywork is visible without decorative hands. */
+.clarinet-art .clarinet-ring-hole{fill:none;stroke:url(#clarinetSilver);stroke-width:5;filter:drop-shadow(0 1px 1px #050706)}
+.clarinet-art .clarinet-pinky-stack{fill:none;stroke:url(#clarinetSilver);stroke-width:4;stroke-linecap:round;filter:drop-shadow(0 1px 1px #050706)}
+.clarinet-art .clarinet-key-name{font:600 8px 'DM Mono',monospace;fill:#eee8d8;stroke:#111511;stroke-width:2px;paint-order:stroke;pointer-events:none}
+.clarinet-art .wind-key text.clarinet-computer-key{font-size:8px;fill:#f3d26d}
+.clarinet-art .clarinet-key.pressed .key-rim{filter:drop-shadow(0 0 5px #d9d0a5)}
+.clarinet-art .clarinet-key .key-pad{transform-box:fill-box;transform-origin:center;transition:transform .1s,fill .1s}
+.clarinet-art .clarinet-key.pressed .key-pad{transform:translateY(2px)}
+
+/* Clarinet key positions follow the Boehm front layout: six central holes, side keys, twin pinky stacks, and rear thumb inset. */
+.clarinet-art .clarinet-thumb-inset rect{fill:#f4f1e8;stroke:#b7b4a9;stroke-width:2}
+.clarinet-art .clarinet-thumb-inset path{fill:url(#clarinetBody);stroke:#090d0b;stroke-width:2}
+.clarinet-art .clarinet-thumb-inset text{font:600 7px 'DM Mono',monospace;fill:#586054;letter-spacing:.3px}
+.clarinet-art .clarinet-ring-hole{fill:none;stroke:url(#clarinetSilver);stroke-width:5;filter:drop-shadow(0 1px 1px #050706)}
+.clarinet-art .clarinet-hole-edge{fill:url(#clarinetSilver);stroke:#686d66;stroke-width:2}
+.clarinet-art .clarinet-hole{fill:#020403;stroke:#111512;stroke-width:1}
+.clarinet-art .clarinet-key-cap{fill:url(#clarinetSilver);stroke:#5d625d;stroke-width:1.5}
+.clarinet-art .clarinet-pinky-touch{fill:url(#clarinetSilver);stroke:#555a53;stroke-width:2;filter:drop-shadow(0 1px 1px #050706)}
+.clarinet-art .clarinet-linkage{fill:none;stroke:url(#clarinetSilver);stroke-width:2.4;opacity:.85;pointer-events:none}
+.clarinet-art .clarinet-key.pressed .clarinet-ring-hole,.clarinet-art .clarinet-key.pressed .clarinet-key-cap,.clarinet-art .clarinet-key.pressed .clarinet-pinky-touch,.clarinet-art .clarinet-key.pressed .clarinet-cup{filter:drop-shadow(0 0 5px #d9d0a5);transform:translateY(1px)}
+.clarinet-art .clarinet-tone-holes circle{fill:#020403;stroke:#4e544e;stroke-width:2.2}
+
+/* Clarinet fingerings visibly depress both ring keys and covered tone holes. */
+.clarinet-art .clarinet-key .clarinet-ring-hole,.clarinet-art .clarinet-key .clarinet-hole-edge,.clarinet-art .clarinet-key .clarinet-hole{transform-box:fill-box;transform-origin:center;transition:transform .1s,fill .1s,filter .1s}
+.clarinet-art .clarinet-key.pressed .clarinet-ring-hole{fill:url(#clarinetSilver);transform:translateY(2px);filter:drop-shadow(0 0 5px #d9d0a5)}
+.clarinet-art .clarinet-key.pressed .clarinet-hole-edge{transform:translateY(2px);filter:drop-shadow(0 0 5px #d9d0a5)}
+.clarinet-art .clarinet-key.pressed .clarinet-hole{fill:url(#clarinetSilver);stroke:#d9d0a5;transform:translateY(2px)}
+.clarinet-accidental-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:10px 0}
+.clarinet-accidental-label{margin-right:3px;color:#667265;font:600 11px 'DM Sans',sans-serif}
+.clarinet-accidental-button{min-height:36px;padding:7px 12px;border:1px solid #d7ddd4;border-radius:999px;background:#f8f9f5;color:#435847;font:700 12px 'DM Sans',sans-serif;cursor:pointer;touch-action:manipulation;transition:background .12s,border-color .12s,transform .12s}
+.clarinet-accidental-button:hover{background:#edf2e9}
+.clarinet-accidental-button.active{background:#e1ecdf;border-color:#8fa88d;box-shadow:inset 0 0 0 1px #8fa88d}

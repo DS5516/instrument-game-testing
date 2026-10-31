@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f8f5ee">
+  <title>Instrument Testing</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="Instrument Testing home"><span class="brand-mark">♪</span> Instrument Testing</a>
+      <span class="version">INSTRUMENT TESTING · V1</span>
+    </header>
+    <section id="welcome" class="welcome">
+      <p class="eyebrow">A LITTLE ROOM FOR BIG SOUNDS</p>
+      <h1>Welcome to<br><span>Little Sound Lab.</span></h1>
+      <p class="intro-copy">Pick an instrument, find a sound, and play as much as you like.</p>
+      <button id="start-button" class="start-button">Start playing <span aria-hidden="true">→</span></button>
+    </section>
+    <section id="chooser" class="chooser hidden">
+      <div class="intro"><p class="eyebrow">YOUR FIRST JAM SESSION</p><h1>Pick a sound.<br><span>Make it yours.</span></h1><p class="intro-copy">Choose an instrument and tap around. Every sound is ready when you are.</p></div>
+      <div class="instrument-grid" aria-label="Choose an instrument">
+        <button class="instrument-card card-piano" data-instrument="piano"><span class="card-icon">♬</span><span class="card-name">Piano</span><span class="card-detail">Keys & notes</span><span class="card-arrow">↗</span></button>
+        <button class="instrument-card card-guitar" data-instrument="guitar"><span class="card-icon">♩</span><span class="card-name">Guitar</span><span class="card-detail">Six strings</span><span class="card-arrow">↗</span></button>
+        <button class="instrument-card card-drums" data-instrument="drums"><span class="card-icon">◉</span><span class="card-name">Drums</span><span class="card-detail">Beat & rhythm</span><span class="card-arrow">↗</span></button>
+        <button class="instrument-card card-violin" data-instrument="violin"><span class="card-icon">𝄞</span><span class="card-name">Violin</span><span class="card-detail">Four strings</span><span class="card-arrow">↗</span></button>
+        <button class="instrument-card card-flute" data-instrument="flute"><span class="card-icon">〰</span><span class="card-name">Flute</span><span class="card-detail">Airy notes</span><span class="card-arrow">↗</span></button>
+        <button class="instrument-card card-clarinet" data-instrument="clarinet"><span class="card-icon">♭</span><span class="card-name">Clarinet</span><span class="card-detail">Warm notes</span><span class="card-arrow">↗</span></button>
+      </div>
+      <p class="hint"><span>✳</span> No wrong notes here. Just have fun.</p>
+    </section>
+    <section id="player" class="player hidden" aria-live="polite">
+      <div class="player-heading"><button id="back-button" class="back-button"><span aria-hidden="true">←</span> All instruments</button><div class="instrument-title"><span id="instrument-icon" class="title-icon"></span><div><p class="eyebrow">NOW PLAYING</p><h1 id="instrument-title">Piano</h1></div></div><span class="tap-tip">TAP A SOUND <span>↘</span></span></div>
+      <div id="stage" class="stage"><div id="instrument-art" class="instrument-art"></div><div id="controls" class="controls"></div></div>
+      <div class="rhythm-entry"><button id="rhythm-launch" class="rhythm-launch" type="button">Play a rhythm game <span aria-hidden="true">→</span></button></div>
+      <section id="song-picker" class="song-picker hidden" aria-label="Choose a practice song"><div class="rhythm-heading"><button id="song-back" class="back-button" type="button">← Free play</button><h2>Choose a practice song</h2></div><div id="song-list" class="song-list"></div><button id="song-start" class="rhythm-action" type="button" disabled>Start song</button></section>
+      <section id="rhythm-game" class="rhythm-game hidden" aria-label="Rhythm game"><div class="rhythm-topline"><button id="game-back" class="back-button" type="button">← Songs</button><strong id="game-song-title"></strong><span id="game-tempo"></span></div><div class="game-stats"><span>Score <b id="game-score">0</b></span><span>Combo <b id="game-combo">0</b></span><span>Misses <b id="game-misses">0</b></span><span>Accuracy <b id="game-accuracy">—</b></span><span id="game-feedback" aria-live="polite">Ready</span></div><div id="note-track" class="note-track" aria-label="Incoming notes"><div class="hit-line"></div></div><div id="game-lanes" class="game-lanes"></div><div class="game-progress"><progress id="song-progress" value="0" max="100"></progress><span id="progress-label">0%</span></div><div class="game-actions"><button id="game-pause" class="rhythm-action" type="button">Pause</button><button id="game-restart" class="rhythm-action secondary-action" type="button">Restart</button><button id="game-stop" class="rhythm-action secondary-action" type="button">Stop</button></div><p id="game-key-hint" class="game-key-hint"></p></section>      <div class="player-footer"><span class="sound-dot" aria-hidden="true"></span><span id="audio-status" class="audio-status" data-state="waiting" aria-live="polite">Audio waiting for input</span><span id="sound-caption">Tap a key to play a note</span><span id="note-info" class="note-info" aria-live="polite">Choose a control to see its note and fingering.</span><button id="stop-sound" class="stop-sound" type="button" aria-label="Stop all playing sounds">■ Stop sound</button><label class="volume-control" for="volume-slider">VOLUME <input id="volume-slider" type="range" min="0" max="100" value="35" aria-label="Volume"></label></div>
+    </section>
+    <footer class="page-footer"><span>MADE FOR CURIOUS EARS</span><span>✳ &nbsp; SOUND ON FOR THE FULL EXPERIENCE</span></footer>
+  </main>
+  <script src="script.js"></script>
+</body>
+</html>

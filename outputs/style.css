@@ -158,7 +158,7 @@
 
 .drum{touch-action:manipulation}
 
-.rhythm-entry{width:100%;display:flex;justify-content:center;margin-top:16px}.rhythm-launch,.rhythm-action{border:1px solid #d9e0d5;border-radius:999px;background:#eef3eb;color:#415e4b;padding:11px 17px;font:700 12px 'DM Sans',sans-serif;cursor:pointer;touch-action:manipulation}.rhythm-launch span{padding-left:8px}.song-picker,.rhythm-game{width:min(850px,100%);margin:18px auto 0;padding:18px;border:1px solid #e7e3d9;border-radius:15px;background:#fffdf8}.rhythm-heading,.rhythm-topline,.game-stats,.game-actions{display:flex;align-items:center;justify-content:space-between;gap:12px}.rhythm-heading h2{font:700 20px 'Playfair Display',serif;margin:0}.song-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:15px 0}.song-card{min-height:92px;text-align:left;padding:13px;border:1px solid #e5e2d9;border-radius:12px;background:#fff;color:#344238;cursor:pointer;touch-action:manipulation}.song-card.selected{border-color:#66816a;background:#eef4ec;box-shadow:0 0 0 2px #66816a22}.song-card strong,.song-card span{display:block}.song-card span{font-size:11px;color:#788177;margin-top:7px}.rhythm-action:disabled{opacity:.45;cursor:not-allowed}.rhythm-topline{margin-bottom:12px;font-size:12px}.game-stats{justify-content:flex-start;flex-wrap:wrap;font:11px 'DM Mono',monospace;color:#657264}.game-stats span{padding:6px 9px;border-radius:7px;background:#f4f3ec}.game-stats #game-feedback{margin-left:auto;color:#527252;font-weight:700}.note-track{--lanes:7;position:relative;height:286px;margin:12px auto 0;width:min(700px,100%);overflow:hidden;border:1px solid #e5e2d9;border-radius:10px;background:repeating-linear-gradient(90deg,transparent 0 calc(100% / var(--lanes) - 1px),#e5e2d9 calc(100% / var(--lanes) - 1px) calc(100% / var(--lanes))),linear-gradient(#fbfaf6,#f0f1e9)}.hit-line{position:absolute;z-index:2;left:0;right:0;bottom:27px;height:3px;background:#d17b57;box-shadow:0 0 10px #d17b5766}.falling-note{position:absolute;width:clamp(22px,4vw,34px);height:18px;border-radius:7px;background:#5c795f;box-shadow:0 3px 0 #3e5a42;transform:translate(-50%,-50%);pointer-events:none}.falling-note.drum-note{background:#bc7960;box-shadow:0 3px 0 #915941}.game-lanes{display:grid;grid-template-columns:repeat(var(--lanes),minmax(0,1fr));gap:5px;width:min(700px,100%);margin:7px auto}.game-lane{min-height:42px;padding:6px 3px;border:1px solid #dce2d8;border-radius:8px;background:#fff;color:#536352;font:600 10px 'DM Mono',monospace;cursor:pointer;touch-action:manipulation}.game-lane:active,.game-lane.playing{background:#e4eee1}.game-progress{display:flex;align-items:center;gap:10px;margin-top:7px;color:#788177;font:10px 'DM Mono',monospace}.game-progress progress{flex:1;height:8px;accent-color:#6c8b70}.game-actions{justify-content:center;margin-top:12px}.secondary-action{background:#fff;border-color:#e5e2d9;color:#68736a}.game-key-hint{text-align:center;margin:9px 0 0;color:#858d83;font:10px 'DM Mono',monospace}.hidden{display:none!important}@media(max-width:650px){.song-list{grid-template-columns:1fr}.song-card{min-height:68px}.song-picker,.rhythm-game{padding:12px}.note-track{height:245px}.game-lane{font-size:9px;min-height:46px;padding:4px 1px}.rhythm-topline{font-size:10px}}
+.rhythm-action{border:1px solid #d9e0d5;border-radius:999px;background:#eef3eb;color:#415e4b;padding:11px 17px;font:700 12px 'DM Sans',sans-serif;cursor:pointer;touch-action:manipulation}.song-picker,.rhythm-game{width:min(850px,100%);margin:18px auto 0;padding:18px;border:1px solid #e7e3d9;border-radius:15px;background:#fffdf8}.rhythm-heading,.rhythm-topline,.game-stats,.game-actions{display:flex;align-items:center;justify-content:space-between;gap:12px}.rhythm-heading h2{font:700 20px 'Playfair Display',serif;margin:0}.song-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:15px 0}.song-card{min-height:92px;text-align:left;padding:13px;border:1px solid #e5e2d9;border-radius:12px;background:#fff;color:#344238;cursor:pointer;touch-action:manipulation}.song-card.selected{border-color:#66816a;background:#eef4ec;box-shadow:0 0 0 2px #66816a22}.song-card strong,.song-card span{display:block}.song-card span{font-size:11px;color:#788177;margin-top:7px}.rhythm-action:disabled{opacity:.45;cursor:not-allowed}.rhythm-topline{margin-bottom:12px;font-size:12px}.game-stats{justify-content:flex-start;flex-wrap:wrap;font:11px 'DM Mono',monospace;color:#657264}.game-stats span{padding:6px 9px;border-radius:7px;background:#f4f3ec}.game-stats #game-feedback{margin-left:auto;color:#527252;font-weight:700}.note-track{--lanes:7;position:relative;height:286px;margin:12px auto 0;width:min(700px,100%);overflow:hidden;border:1px solid #e5e2d9;border-radius:10px;background:repeating-linear-gradient(90deg,transparent 0 calc(100% / var(--lanes) - 1px),#e5e2d9 calc(100% / var(--lanes) - 1px) calc(100% / var(--lanes))),linear-gradient(#fbfaf6,#f0f1e9)}.hit-line{position:absolute;z-index:2;left:0;right:0;bottom:27px;height:3px;background:#d17b57;box-shadow:0 0 10px #d17b5766}.falling-note{position:absolute;width:clamp(22px,4vw,34px);height:18px;border-radius:7px;background:#5c795f;box-shadow:0 3px 0 #3e5a42;transform:translate(-50%,-50%);pointer-events:none}.falling-note.drum-note{background:#bc7960;box-shadow:0 3px 0 #915941}.game-lanes{display:grid;grid-template-columns:repeat(var(--lanes),minmax(0,1fr));gap:5px;width:min(700px,100%);margin:7px auto}.game-lane{min-height:42px;padding:6px 3px;border:1px solid #dce2d8;border-radius:8px;background:#fff;color:#536352;font:600 10px 'DM Mono',monospace;cursor:pointer;touch-action:manipulation}.game-lane:active,.game-lane.playing{background:#e4eee1}.game-progress{display:flex;align-items:center;gap:10px;margin-top:7px;color:#788177;font:10px 'DM Mono',monospace}.game-progress progress{flex:1;height:8px;accent-color:#6c8b70}.game-actions{justify-content:center;margin-top:12px}.secondary-action{background:#fff;border-color:#e5e2d9;color:#68736a}.game-key-hint{text-align:center;margin:9px 0 0;color:#858d83;font:10px 'DM Mono',monospace}.hidden{display:none!important}@media(max-width:650px){.song-list{grid-template-columns:1fr}.song-card{min-height:68px}.song-picker,.rhythm-game{padding:12px}.note-track{height:245px}.game-lane{font-size:9px;min-height:46px;padding:4px 1px}.rhythm-topline{font-size:10px}}
 
 /* Full-range piano: fixed-width keys inside a horizontal scroller. */
 .controls:has(.keys){width:100%;overflow-x:auto;align-items:flex-start;padding:0 0 10px;justify-content:flex-start}
@@ -219,6 +219,38 @@
   .clarinet-diagram{height:min(58vh,500px)}
   .drum-kit{width:100%;min-width:0;height:250px;transform:none!important}
 }
+
+/* Main menu, progression screens, and rhythm UI. Instrument play screens keep their existing look. */
+body:has(#welcome:not(.hidden)),body:has(.home-page:not(.hidden)),body:has(#chooser:not(.hidden)){--ink:#ecf3ff;--muted:#a8bad5;--paper:#071427;--green:#77a9ff;--line:#203754;background:radial-gradient(ellipse at 50% 0%,#16365d 0,#0b1c33 42%,#071427 78%);color:var(--ink)}
+body:has(#welcome:not(.hidden)) .topbar,body:has(.home-page:not(.hidden)) .topbar,body:has(#chooser:not(.hidden)) .topbar{border-color:#263d5a}
+body:has(#welcome:not(.hidden)) .brand,body:has(.home-page:not(.hidden)) .brand,body:has(#chooser:not(.hidden)) .brand{color:#eef5ff}
+body:has(#welcome:not(.hidden)) .brand-mark,body:has(.home-page:not(.hidden)) .brand-mark,body:has(#chooser:not(.hidden)) .brand-mark{background:#19385c;color:#91bbff}
+body:has(#welcome:not(.hidden)) .version,body:has(.home-page:not(.hidden)) .version,body:has(#chooser:not(.hidden)) .version{color:#91a8c8}
+body:has(#welcome:not(.hidden)) .page-footer,body:has(.home-page:not(.hidden)) .page-footer,body:has(#chooser:not(.hidden)) .page-footer{border-color:#203754;color:#7e94b2}
+.welcome{padding-top:clamp(40px,8vh,86px);padding-bottom:clamp(48px,9vh,98px)}
+.welcome .eyebrow,.home-page .eyebrow{color:#7ca9e6}
+.welcome h1 span{color:#94bbff}
+.welcome .intro-copy{color:#b4c3d8}
+.home-menu{width:min(100%,520px);margin:0 auto;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.start-button{grid-column:1/-1;justify-self:center;min-width:min(100%,270px);margin-bottom:5px;background:linear-gradient(135deg,#89b7ff,#4b82d1);box-shadow:0 5px 0 #315b96;color:#071a34}
+.start-button:hover{background:linear-gradient(135deg,#a4c8ff,#6097eb)}
+.menu-button{min-height:48px;border:1px solid #2a4262;border-radius:12px;background:#102541;color:#deebff;font:600 13px 'DM Sans',sans-serif;cursor:pointer;transition:transform .14s,border-color .14s,background .14s;touch-action:manipulation}
+.menu-button:hover,.menu-button:focus-visible{outline:none;transform:translateY(-2px);border-color:#6d9fe5;background:#183458}
+.home-page{width:100%;max-width:880px;margin:auto;padding:32px 0 46px}
+.play-modes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.play-mode-card{min-height:150px;padding:22px;border:1px solid #2a4262;border-radius:15px;background:linear-gradient(145deg,#112945,#0c1f37);color:#e8f1ff;text-align:left;cursor:pointer;touch-action:manipulation;transition:transform .14s,border-color .14s,background .14s}.play-mode-card:hover,.play-mode-card:focus-visible{outline:none;transform:translateY(-3px);border-color:#78a8eb;background:linear-gradient(145deg,#193a61,#102642)}.play-mode-card strong,.play-mode-card span{display:block}.play-mode-card strong{font:700 20px 'DM Sans',sans-serif}.play-mode-card span{max-width:340px;margin-top:9px;color:#a9bdd7;font-size:12px;line-height:1.55}
+.library-help{margin:-9px 0 18px;color:#a9bdd7;font-size:12px}.library-songs-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;margin-bottom:16px}.library-song-card{display:grid;gap:7px;min-height:112px;padding:14px;border:1px solid #294261;border-radius:12px;background:#102541;color:#e8f1ff;text-align:left;cursor:pointer;touch-action:manipulation;transition:background .14s,border-color .14s,transform .14s}.library-song-card:hover,.library-song-card:focus-visible{outline:none;transform:translateY(-2px);border-color:#6799e0;background:#163355}.library-song-card.selected{border-color:#86b4f6;background:#18375c;box-shadow:0 0 0 2px #86b4f622}.library-song-card strong{font-size:14px}.library-song-card span{color:#a9bdd7;font-size:11px}.library-song-card small{color:#8fa8c9;font:10px 'DM Mono',monospace}
+.home-page-head{display:flex;align-items:center;gap:24px;margin-bottom:22px}.home-page-head>div{flex:1}.home-page-head h2{margin:0;font:700 clamp(30px,5vw,44px)/1.1 'Playfair Display',serif}.home-page-head .back-button{color:#b7c7de}.page-summary{color:#a9bfdc;font:11px 'DM Mono',monospace}
+.levels-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.level-card{display:flex;align-items:center;gap:13px;min-height:82px;padding:13px;border:1px solid #2a4262;border-radius:13px;background:#0d2039;color:#e8f1ff;text-align:left;cursor:pointer;touch-action:manipulation;transition:background .14s,border-color .14s,transform .14s}
+.level-card:not(:disabled):hover{transform:translateY(-2px);background:#142d4b;border-color:#6598de}.level-card:disabled{opacity:.58;cursor:not-allowed}.level-card.completed{border-color:#3e6b68}
+.level-number{display:grid;place-items:center;flex:none;width:42px;height:42px;border-radius:11px;background:#1a3658;color:#9dc2ff;font:700 13px 'DM Mono',monospace}.level-copy{display:grid;gap:4px;min-width:0}.level-copy strong{font-size:13px}.level-copy small{color:#9aafcb;font-size:10px;line-height:1.35}.level-status{margin-left:auto;color:#8bb5f5;font-size:18px}
+.achievements-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.achievement-card{display:flex;align-items:center;gap:12px;min-height:76px;padding:13px;border:1px solid #273d59;border-radius:12px;background:#0c1f37;color:#e1ecfb}.achievement-card.unlocked{border-color:#416976;background:linear-gradient(120deg,#102a43,#103039)}.achievement-mark{display:grid;place-items:center;flex:none;width:36px;height:36px;border-radius:50%;background:#1a3658;color:#9abfff;font-size:18px}.achievement-card.unlocked .achievement-mark{background:#254b4a;color:#abedce}.achievement-card strong{font-size:12px}.achievement-card p{margin:4px 0 0;color:#9aafca;font-size:10px}.achievement-card small{margin-left:auto;color:#97abc7;font:10px 'DM Mono',monospace}
+.settings-card{display:grid;gap:10px;max-width:620px;padding:18px;border:1px solid #2a4262;border-radius:15px;background:#0c1f37}.setting-row{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:13px;border:1px solid #263d5a;border-radius:10px;background:#102541}.setting-row span{display:grid;gap:5px}.setting-row strong{font-size:13px}.setting-row small,.settings-status{color:#a0b4d0;font-size:11px}.setting-row input[type=checkbox]{width:20px;height:20px;accent-color:#79aaff}.setting-row input[type=range]{width:min(240px,48%);accent-color:#79aaff}.settings-card .rhythm-action{justify-self:start;margin-top:4px}.settings-status{min-height:14px;margin:0}
+.chooser-head{position:relative}.chooser-head>.back-button{position:absolute;left:0;top:-16px;color:#b7c7de}.chooser .intro h1 span{color:#94bbff}.chooser .intro-copy,.chooser .hint{color:#b4c3d8}.chooser .instrument-card{background:#0e213a;border-color:#2a4262;color:#e8f1ff}.chooser .instrument-card:hover,.chooser .instrument-card:focus-visible{border-color:#72a4ef;box-shadow:0 9px 24px #0004}.chooser .card-detail,.chooser .card-arrow{color:#9db2cf}.chooser .card-icon{background:#183252;color:#a9ccff}.chooser .card-guitar .card-icon{background:#43342b;color:#f3b877}.chooser .card-drums .card-icon{background:#412d35;color:#efa39c}.chooser .card-violin .card-icon{background:#362b47;color:#d3b5f2}.chooser .card-flute .card-icon{background:#1e3c4c;color:#9cd8eb}.chooser .card-clarinet .card-icon{background:#3e392b;color:#ecd28a}
+.song-picker,.rhythm-game,.results-panel{border-color:#243d5d;background:#0c1f37;color:#e6effd;box-shadow:0 14px 35px #030b1680}.rhythm-heading h2{color:#eff5ff}.rhythm-heading .eyebrow{color:#82a9e1}.song-instrument-label{margin:5px 0 0;color:#a7bad5;font-size:11px}.song-list{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}.song-card{border-color:#294261;background:#102541;color:#e8f1ff}.song-card.selected,.song-card:hover{border-color:#76a6ed;background:#163355}.song-card span{color:#9eb2ce;line-height:1.4}.practice-option{display:flex;align-items:center;gap:10px;width:max-content;max-width:100%;padding:9px 12px;border:1px solid #294261;border-radius:9px;background:#102541;color:#e1edff}.practice-option input{accent-color:#81adf0}.practice-option span{display:grid;gap:2px}.practice-option strong{font-size:11px}.practice-option small{color:#9eb2ce;font-size:10px}
+.rhythm-action{border-color:#4d76a8;background:#79a9ef;color:#081b34}.rhythm-action:hover{background:#a0c3fb}.secondary-action{border-color:#334d6d;background:#122844;color:#d1e0f5}.secondary-action:hover{background:#1b385a}.rhythm-action:disabled{opacity:.5}
+.game-stats{color:#b6c7df}.game-stats span{background:#142945}.game-stats #game-feedback{color:#9ec1ff}.note-track{border-color:#2a4566;background:repeating-linear-gradient(90deg,transparent 0 calc(100% / var(--lanes) - 1px),#233c59 calc(100% / var(--lanes) - 1px) calc(100% / var(--lanes))),linear-gradient(#102642,#09182b)}.hit-line{background:#ffb681;box-shadow:0 0 12px #ffb68177}.falling-note{background:#9dc1ff;box-shadow:0 3px 0 #4a78b7}.falling-note.drum-note{background:#ffac9c;box-shadow:0 3px 0 #a55b59}.game-lane{border-color:#2b4667;background:#122945;color:#dbeaff}.game-lane:active,.game-lane.playing{background:#274c76;color:#fff}.game-lane.reference-lane:disabled{opacity:.72;cursor:default;background:#10233c}.game-progress{color:#a9bad1}.game-progress progress{accent-color:#8db7fa}.game-key-hint{color:#9baeca}.game-target{color:#a9c7f3;font-weight:700}.countdown-overlay{position:absolute;z-index:3;inset:0;display:grid;place-items:center;background:#06152abb;color:#d9e9ff;font:800 clamp(64px,14vw,120px) 'DM Sans',sans-serif;text-shadow:0 5px 30px #75aaff88;pointer-events:none}.track-wrap{position:relative;width:min(700px,100%);margin:auto}.track-wrap .note-track{margin-top:12px}.game-progress progress{min-width:0}.results-panel{width:min(850px,100%);margin:18px auto;padding:26px;border:1px solid #243d5d;border-radius:15px;text-align:center}.results-heading .eyebrow{color:#83a9df}.results-heading h2{margin:0;color:#eff5ff;font:700 clamp(23px,4vw,34px) 'Playfair Display',serif}.results-stars{margin:10px 0;color:#ffd27a;font-size:32px;letter-spacing:8px}.results-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:18px auto;max-width:620px}.results-stats span{display:grid;gap:5px;padding:12px 7px;border:1px solid #294260;border-radius:9px;background:#102541;color:#a9bdd7;font:10px 'DM Mono',monospace}.results-stats b{color:#eef5ff;font-size:16px}.results-reward{color:#b7c9e1;font-size:12px}.results-actions{display:flex;justify-content:center;flex-wrap:wrap;gap:10px;margin-top:20px}.achievement-toast{position:fixed;z-index:20;right:22px;bottom:22px;max-width:min(420px,calc(100% - 32px));padding:14px 18px;border:1px solid #80b0fa;border-radius:12px;background:#102b4b;color:#eff6ff;box-shadow:0 12px 35px #0007;font-size:13px;font-weight:700}
+@media(max-width:650px){.home-menu{grid-template-columns:1fr}.start-button{grid-column:1}.home-page-head{gap:12px;align-items:flex-start}.home-page-head .back-button{font-size:11px}.levels-list,.achievements-list,.play-modes{grid-template-columns:1fr}.play-mode-card{min-height:110px}.level-card{min-height:76px}.results-panel{padding:17px 12px}.results-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.results-actions .rhythm-action{flex:1}.chooser-head>.back-button{top:-28px}.song-list,.library-songs-list{grid-template-columns:1fr}.game-stats{gap:5px}.game-stats span{padding:5px 6px;font-size:9px}.game-stats #game-feedback{margin-left:0}.game-actions{flex-wrap:wrap}.game-actions .rhythm-action{flex:1;padding:10px 12px}.rhythm-topline{flex-wrap:wrap}.rhythm-topline #game-song-title{order:2;width:100%;text-align:center}.rhythm-topline #game-tempo{margin-left:auto}.practice-option{width:100%}}
 
 /* Clarinet model: black grenadilla body, silver Boehm keywork and accessible viewing controls. */
 .clarinet-art{width:100%;min-height:0;height:auto;overflow:visible;display:flex;justify-content:center;align-items:center}
@@ -390,3 +422,165 @@
 .clarinet-accidental-button{min-height:36px;padding:7px 12px;border:1px solid #d7ddd4;border-radius:999px;background:#f8f9f5;color:#435847;font:700 12px 'DM Sans',sans-serif;cursor:pointer;touch-action:manipulation;transition:background .12s,border-color .12s,transform .12s}
 .clarinet-accidental-button:hover{background:#edf2e9}
 .clarinet-accidental-button.active{background:#e1ecdf;border-color:#8fa88d;box-shadow:inset 0 0 0 1px #8fa88d}
+/* Detailed, clickable concert flute model */
+.flute-art{width:min(1120px,100%);min-height:clamp(145px,28vh,260px);overflow:visible;justify-content:center}
+.flute-diagram{display:block;width:100%;max-width:100%;height:auto;max-height:none;flex:none}
+.flute-tube-shadow{fill:#202829;opacity:.27}
+.flute-tube,.flute-headjoint,.flute-body-joint,.flute-footjoint{fill:url(#fluteMetal);stroke:#737c7d;stroke-width:2}
+.flute-cylinder-highlight{fill:none;stroke:#fff;stroke-width:4;opacity:.68;pointer-events:none}
+.flute-cylinder-shadow{fill:none;stroke:#596162;stroke-width:3;opacity:.52;pointer-events:none}
+.flute-joint-ring{fill:none;stroke:url(#fluteRodMetal);stroke-width:5}
+.flute-crown{fill:url(#fluteCupMetal);stroke:#717a7b;stroke-width:2}
+.flute-crown-cap{fill:url(#fluteMetal);stroke:#7a8282;stroke-width:2}
+.flute-lip-plate{fill:url(#fluteCupMetal);stroke:#7a8282;stroke-width:2}
+.embouchure{fill:#1a2021;stroke:#5e6869;stroke-width:2;cursor:pointer;touch-action:manipulation}
+.flute-embouchure-inner{fill:#050809;pointer-events:none}
+.flute-art .embouchure.high-register{fill:#789579;stroke:#425b46}
+.flute-rod-shadow{fill:none;stroke:#424a4b;stroke-width:6;opacity:.28}
+.flute-rod,.flute-rod-link{fill:none;stroke:url(#fluteRodMetal);stroke-width:4;stroke-linecap:round;stroke-linejoin:round}
+.flute-tone-holes circle{fill:url(#fluteInside);stroke:#d5d9d6;stroke-width:3}
+.flute-key-post{fill:url(#fluteCupMetal);stroke:#737c7d;stroke-width:1.5}
+.flute-key-arm-shadow{fill:none;stroke:#51595a;stroke-width:7;opacity:.3;stroke-linecap:round}
+.flute-key-arm{fill:none;stroke:url(#fluteRodMetal);stroke-width:4.5;stroke-linecap:round}
+.flute-key-hit{fill:transparent;stroke:none;pointer-events:all;cursor:pointer}
+.flute-art .flute-key{cursor:pointer;touch-action:manipulation}
+.flute-art .flute-key .key-rim{fill:url(#fluteCupMetal);stroke:#747d7d;stroke-width:1.8}
+.flute-art .wind-key.open .key-pad{fill:url(#fluteInside);stroke:#d4d9d7;stroke-width:1.5}
+.flute-art .wind-key:not(.main).open .key-pad{fill:url(#fluteCupMetal);stroke:#879090}
+.flute-art .wind-key.pressed .key-pad{fill:#789579;stroke:#425b46;stroke-width:2}
+.flute-art .wind-key.pressed .key-rim{transform:translateY(1.5px);transform-box:fill-box;transform-origin:center}
+.flute-pad-glint{fill:#fff;opacity:.55;pointer-events:none}
+.flute-key-label{font:10px 'DM Mono',monospace;text-anchor:middle;fill:#475352;pointer-events:none}
+.flute-foot-key-arm{fill:none;stroke:url(#fluteRodMetal);stroke-width:5;stroke-linecap:round}
+.flute-foot-cup{fill:url(#fluteCupMetal);stroke:#6d7677;stroke-width:2}
+.flute-bell-rim{fill:url(#fluteCupMetal);stroke:#687172;stroke-width:2}
+.flute-bell-opening{fill:url(#fluteInside);stroke:#b4bbbb;stroke-width:1.5}
+@media(max-width:700px){
+  .flute-art{width:100%;min-height:0;justify-content:center;overflow:visible}
+  .flute-diagram{width:100%;max-width:100%;max-height:none}
+}
+/* Full-size acoustic violin illustration, scaled to the game area */
+.violin-art{width:min(1120px,100%);min-height:clamp(145px,28vh,320px);justify-content:center;overflow:visible}
+.violin-diagram{display:block;width:100%;max-width:100%;height:auto;max-height:none;overflow:visible}
+.violin-shadow{fill:#1b1712;opacity:.22}
+.violin-body{fill:url(#violinPlate);stroke:#4e2819;stroke-width:5}
+.violin-varnish{fill:url(#violinVarnish);pointer-events:none}
+.violin-purfling{fill:none;stroke:#38241b;stroke-width:5;opacity:.92}
+.violin-neck-wood{fill:url(#violinWood);stroke:#633b27;stroke-width:3}
+.violin-pegbox{fill:url(#violinEbony);stroke:#2c2420;stroke-width:3}
+.violin-scroll{fill:none;stroke:url(#violinWood);stroke-width:15;stroke-linecap:round;stroke-linejoin:round}
+.violin-scroll-highlight{fill:none;stroke:#efbd7c;stroke-width:2;opacity:.62}
+.violin-fingerboard{fill:url(#violinEbony);stroke:#100f0f;stroke-width:3}
+.violin-fingerboard-highlight{fill:none;stroke:#8b7660;stroke-width:2;opacity:.7}
+.violin-nut{fill:url(#violinBridgeWood);stroke:#7a5b3d;stroke-width:2}
+.violin-pegs{fill:url(#violinBridgeWood);stroke:#4a3022;stroke-width:3}
+.violin-peg-shaft{fill:none;stroke:#69442c;stroke-width:9;stroke-linecap:round}
+.violin-f-hole{fill:none;stroke:#291a14;stroke-width:8;stroke-linecap:round;stroke-linejoin:round}
+.violin-f-hole-nick{fill:#211812;stroke:#e6b577;stroke-width:2}
+.violin-tailpiece{fill:url(#violinEbony);stroke:#181412;stroke-width:3}
+.violin-tailpiece-inlay{fill:none;stroke:#b89665;stroke-width:2;opacity:.8}
+.violin-chinrest{fill:url(#violinEbony);stroke:#171312;stroke-width:3}
+.violin-chinrest-edge{fill:none;stroke:#8b7660;stroke-width:2}
+.violin-bridge-svg{fill:url(#violinBridgeWood);stroke:#725236;stroke-width:3;stroke-linejoin:round}
+.violin-bridge-cutout{fill:none;stroke:#76573a;stroke-width:3}
+.violin-bridge-foot{fill:none;stroke:#ddc398;stroke-width:3}
+.violin-string-lines{fill:none;stroke:url(#violinStringMetal);stroke-width:2.6;stroke-linecap:round}
+.violin-string-glints{fill:none;stroke:#fff4dd;stroke-width:.8;opacity:.8}
+.violin-model-string{cursor:pointer;outline:none;touch-action:none}
+.violin-string-hit{stroke:transparent;stroke-width:40;pointer-events:stroke}
+.violin-string-visible{stroke:url(#violinStringMetal);stroke-width:2.6;stroke-linecap:round;pointer-events:none;transition:stroke .1s,stroke-width .1s}
+.violin-string-glint{stroke:#fff4dd;stroke-width:.8;opacity:.8;pointer-events:none}
+.violin-model-string:hover .violin-string-visible,.violin-model-string:focus-visible .violin-string-visible,.violin-model-string.playing .violin-string-visible{stroke:#9fbd8f;stroke-width:4}
+.violin-active-finger-marker{fill:#9fbd8f;stroke:#30452f;stroke-width:3;pointer-events:none;filter:drop-shadow(0 1px 3px #1d241b88)}
+.violin-tailgut{fill:none;stroke:#6f543c;stroke-width:6}
+.violin-endpin{fill:url(#violinBridgeWood);stroke:#553a27;stroke-width:2}
+.violin-fine-tuners circle{fill:url(#violinBridgeWood);stroke:#59422e;stroke-width:1.5}
+@media(max-width:700px){
+  .violin-art{width:100%;min-height:0}
+  .violin-diagram{width:100%;max-width:100%;max-height:none}
+}
+/* Beginner-friendly violin positions: choose one hand position, then tap clear string/finger targets. */
+.violin-neck{width:min(100%,960px);max-width:960px;gap:10px}
+.violin-position-picker{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px;width:100%;margin:0 0 2px}
+.violin-position-button{min-height:38px;border:1px solid #ded8ca;border-radius:9px;background:#fffdf8;color:#615848;font:600 11px 'DM Mono',monospace;cursor:pointer;touch-action:manipulation}
+.violin-position-button:hover,.violin-position-button:focus-visible,.violin-position-button.selected{outline:none;border-color:#708a6d;background:#e7efe3;color:#334a35;box-shadow:0 0 0 2px #708a6d22}
+.violin-fingerboard{height:clamp(205px,27vh,260px);overflow:hidden}
+.violin-string-row{border-color:#b5a182}
+.violin-string-touch-surface{position:absolute;z-index:2;left:6%;right:0;top:0;bottom:0;border:0;border-radius:8px;background:transparent;cursor:crosshair;touch-action:none;user-select:none;-webkit-user-select:none}
+.violin-string-touch-surface:focus-visible{outline:2px solid #789879;outline-offset:-3px}
+.violin-finger-button{width:clamp(38px,4vw,46px);height:clamp(38px,4vw,46px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;border-radius:10px;background:#f7efdfef;color:#473d2e;font:700 11px 'DM Mono',monospace;line-height:1;touch-action:manipulation}
+.violin-finger-button{touch-action:none;user-select:none;-webkit-user-select:none}
+.violin-finger-button .pitch-label{font-size:8px;font-weight:500;color:#726750;white-space:nowrap}
+.violin-finger-button.open-position{background:#61472f;color:#fff5e4;border-color:#38291d}
+.violin-finger-button.open-position .pitch-label{color:#fff0d4}
+.violin-finger-button.selected-position{background:#a8c09e;border-color:#3f6444;color:#172b1a;box-shadow:0 0 0 2px #fff9,0 0 0 4px #78987966}
+.violin-finger-button.selected-position .pitch-label{color:#243927}
+.violin-position-guides{display:none}
+@media(max-width:700px){
+  .violin-position-picker{grid-template-columns:repeat(6,minmax(38px,1fr));gap:5px}
+  .violin-position-button{min-height:44px;font-size:12px}
+  .violin-fingerboard{height:220px}
+  .violin-finger-button{width:40px;height:40px}
+}
+
+/* Show a broad, correctly aligned slice of the full 88-key piano. */
+.keys{--white-key-width:20px;--black-key-width:12px;height:232px}
+.white-key{flex:0 0 var(--white-key-width);width:var(--white-key-width);min-width:var(--white-key-width);height:232px;padding:0 1px 7px;font-size:7px}
+.black-key{width:var(--black-key-width);height:142px;font-size:0;box-shadow:inset 2px 0 3px #ffffff17,0 4px 4px #10181055}
+.white-key:focus-visible,.black-key:focus-visible{outline:2px solid #6e8d70;outline-offset:1px}
+@media(max-width:700px){.keys{--white-key-width:18px;--black-key-width:11px;height:210px}.white-key{flex-basis:var(--white-key-width);width:var(--white-key-width);min-width:var(--white-key-width);height:210px}.black-key{width:var(--black-key-width);height:126px}}
+
+/* Detailed acoustic-guitar artwork and fretboard controls. */
+.guitar-art{width:min(100%,1040px);min-height:0;margin-bottom:8px}
+.guitar-diagram{width:min(100%,1040px);max-height:min(34vh,300px);overflow:visible;filter:drop-shadow(0 10px 12px #3b2a1c18)}
+.guitar-body{fill:url(#guitarWood);stroke:#60391f;stroke-width:7}
+.guitar-binding{fill:none;stroke:#efc48d;stroke-width:5;opacity:.85}
+.guitar-neck-wood{fill:#624129;stroke:#3c2a1c;stroke-width:5}
+.guitar-fretboard{fill:url(#guitarFretboard);stroke:#211914;stroke-width:2}
+.guitar-head{fill:url(#guitarWood);stroke:#523721;stroke-width:4}
+.guitar-fret-wire{stroke:#e2d8c4;stroke-width:3;filter:drop-shadow(1px 1px 1px #16110d88)}
+.guitar-nut,.guitar-saddle{stroke:#f2e5c9;stroke-width:7;stroke-linecap:round;filter:drop-shadow(1px 1px 1px #20170f88)}
+.guitar-rosette-outer,.guitar-rosette-inner{fill:none;stroke:#eccb98;stroke-width:3;opacity:.88}
+.guitar-soundhole{fill:#251a14;stroke:#5b351f;stroke-width:5}
+.guitar-pickguard{fill:#33271f;stroke:#b88351;stroke-width:3;opacity:.86}
+.guitar-bridge{fill:none;stroke:#462b1c;stroke-width:18;stroke-linecap:round}
+.guitar-bridge-pin{fill:#ead7b2;stroke:#67513a;stroke-width:1.5}
+.guitar-tuning-machine path{stroke:#aaa48f;stroke-width:3}.guitar-tuning-machine circle{fill:#d9d2bd;stroke:#686151;stroke-width:2}.guitar-tuning-machine ellipse{fill:#ddd6c0;stroke:#817966;stroke-width:2}
+.guitar-inlay{fill:#dfcfaa;stroke:#f4e8c7;stroke-width:1;opacity:.85}
+.guitar-string-hit{stroke-width:8}
+.guitar-string-visible{stroke:#e9dfc7;filter:drop-shadow(0 1px 1px #26190f)}
+.guitar-fingerboard{height:235px;border-width:9px;border-color:#50351f;border-radius:8px;background:linear-gradient(90deg,#533a27,#422f22 16%,#30251d 62%,#4a3322);box-shadow:inset 0 0 15px #140f0c99,0 7px 12px #3c2a1c27}
+.guitar-fingerboard:before{left:6%;width:5px}
+.guitar-fingerboard .neck-string{z-index:2;border:0;background:transparent;cursor:pointer;touch-action:manipulation}
+.guitar-fingerboard .neck-string:hover{background:#f4e4c312}.guitar-fingerboard .neck-string:focus-visible{outline:2px solid #b4ce9d;outline-offset:-3px}
+.guitar-fingerboard .neck-string-name{left:1%;padding:2px 4px;background:#201a15;color:#f1dfbd;box-shadow:0 1px 3px #0007}
+.guitar-fingerboard .string-path{z-index:1;background:linear-gradient(#75664e,#f6edda 38%,#a3906e 65%,#514534);filter:drop-shadow(0 1px 1px #0d0b09);}
+.guitar-fingerboard .fret-wires{display:block;z-index:3}.guitar-fingerboard .fret-wires i{top:-9px;bottom:-9px;width:3px;background:linear-gradient(90deg,#827e73,#fff8e5 45%,#8e8878);box-shadow:1px 0 3px #100d0b}
+.fret-inlays{position:absolute;z-index:1;inset:0;pointer-events:none}.fret-inlays i{position:absolute;top:50%;width:7px;height:7px;border-radius:50%;background:#d8c49c;box-shadow:0 0 3px #fff7;transform:translate(-50%,-50%)}.fret-inlays i.double-inlay{width:9px;height:30px;border-radius:50%;background:radial-gradient(circle at 50% 18%,#decba4 0 3px,transparent 3.8px),radial-gradient(circle at 50% 82%,#decba4 0 3px,transparent 3.8px)}
+.guitar-fingerboard .neck-string.selected-position{background:linear-gradient(90deg,#94b58400,#97bd7a40 35%,#97bd7a22);box-shadow:inset 0 0 0 1px #b6d49a55}
+.guitar-selected-fret{position:absolute;z-index:4;left:var(--selected-fret,3%);top:50%;width:28px;height:28px;border:2px solid #eef7de;border-radius:50%;background:#7ea16d99;box-shadow:0 0 0 3px #45623f66,0 0 13px #d8f0bf;opacity:0;transform:translate(-50%,-50%);pointer-events:none;transition:left .08s,opacity .1s}
+.guitar-fingerboard .neck-string.selected-position .guitar-selected-fret{opacity:1}
+@media(max-width:700px){.guitar-diagram{max-height:none}.guitar-fingerboard{height:210px}.guitar-selected-fret{width:24px;height:24px}}
+
+/* Make each playable drum read as a drum head or metal cymbal. */
+.drum{border:5px solid #79533b;background:radial-gradient(circle at 36% 28%,#fffdf3 0 28%,#f2eddf 54%,#d6cbb2 60%,#ad7550 63%,#6e4833 100%);box-shadow:inset 0 0 0 3px #e6d4b4,inset 0 -10px 14px #5c392c44,0 7px 0 #614632,0 11px 14px #2c201b26;color:#5c4633;text-shadow:0 1px #fff9}
+.drum:active,.drum.playing{filter:brightness(1.08) saturate(1.2)}
+.drum.hi-hat,.drum.open-hat,.drum.crash,.drum.ride{border:0;border-radius:50%/34%;background:linear-gradient(180deg,#89723d 0,#e1cb7d 18%,#fff0b4 35%,#b4974d 58%,#e3d08b 72%,#83713e 100%);box-shadow:inset 0 2px 5px #fff8,inset 0 -5px 8px #473c1b66,0 5px 0 #74613b,0 8px 12px #21180f33;color:#594822;text-shadow:0 1px #fff9}
+.drum.hi-hat:after,.drum.open-hat:after,.drum.crash:after,.drum.ride:after{content:"";position:absolute;left:50%;top:50%;width:12px;height:12px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff8ce,#8e7946 78%);box-shadow:0 1px 3px #473718;transform:translate(-50%,-50%)}
+.drum.hi-hat{left:3%;top:40%}
+.drum.open-hat{left:3%;top:19%;width:clamp(90px,12vw,130px);height:38px;transform:rotate(-5deg)}
+.drum.open-hat.playing{transform:rotate(-5deg) translateY(3px) scale(.98)}
+.drum.snare-snap{left:2%;top:65%;width:clamp(64px,8vw,78px);height:clamp(54px,7vw,72px);font-size:9px}
+.drum.snare-snap:before{content:"";position:absolute;inset:5px;border:2px solid #dbceb2;border-radius:50%;pointer-events:none}
+.drum-kit{isolation:isolate}
+@media(max-width:700px){.drum.hi-hat{left:3%;top:40%}.drum.open-hat{left:3%;top:19%}.drum.snare-snap{left:0;top:68%;width:50px;height:48px;font-size:7px}}
+.library-card-action{justify-self:start;margin-top:3px;padding:6px 9px;border:1px solid #37577b;border-radius:999px;background:#173557;color:#bcd5f9;font-size:10px;font-weight:700}.library-song-card:hover .library-card-action{border-color:#78a8eb;background:#244a74;color:#fff}
+.play-modes{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+@media(max-width:650px){.play-modes{grid-template-columns:1fr}}
+
+/* Rhythm play uses the available screen for the game instead of the instrument preview. */
+.player.rhythm-playing{max-width:none;margin:0;padding:12px 0 20px}
+.player.rhythm-playing>.player-heading,.player.rhythm-playing>#stage,.player.rhythm-playing>.player-footer{display:none!important}
+.player.rhythm-playing>.rhythm-game,.player.rhythm-playing>.results-panel{width:100%;max-width:1100px;min-height:calc(100dvh - 114px);margin:0 auto}
+.app-shell:has(.player.rhythm-playing)>.page-footer{display:none}
+@media(max-width:700px){.player.rhythm-playing{padding:8px 0 14px}.player.rhythm-playing>.rhythm-game,.player.rhythm-playing>.results-panel{min-height:calc(100dvh - 104px)}}

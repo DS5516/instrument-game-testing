@@ -303,6 +303,9 @@ body:has(#welcome:not(.hidden)) .page-footer,body:has(.home-page:not(.hidden)) .
 .clarinet-practice-status{font:11px 'DM Mono',monospace;color:#687468}
 .clarinet-practice-status.practice-success{color:#327345;font-weight:700}
 .clarinet-practice-actions{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.clarinet-keyboard-modes{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 0 10px}
+.clarinet-keyboard-mode-status{flex-basis:100%;color:#758071;font:10px 'DM Sans',sans-serif}
+.clarinet-keyboard-section-label{grid-column:1/-1;padding-top:5px;color:#586653;font:600 10px 'DM Sans',sans-serif}
 .clarinet-practice-button{min-height:38px;padding:8px 12px;border:1px solid #d7ddd4;border-radius:999px;background:#f3f6f0;color:#435847;font:600 11px 'DM Sans',sans-serif;cursor:pointer;touch-action:manipulation}
 .clarinet-practice-button[aria-pressed=true]{background:#e1ecdf;border-color:#8fa88d}
 .clarinet-chart{border-top:1px solid #e9e7df;padding-top:9px}

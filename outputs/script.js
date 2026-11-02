@@ -393,7 +393,7 @@ function buildWind(id){
     // Boehm-system standard fingerings transcribed from the Woodwind Fingering Guide.
     E3:['T','L1','L2','L3','R1','R2','R3','E/B'],F3:['T','L1','L2','L3','R1','R2','R3','F'],'F♯3':['T','L1','L2','L3','R1','R2','R3','F#'],G3:['T','L1','L2','L3','R1','R2','R3'],'G♯3':['T','L1','L2','L3','R1','R2','R3','G#'],A3:['T','L1','L2','L3','R1','R2'],'A♯3':['T','L1','L2','L3','R1'],B3:['T','L1','L2','L3','R2'],C4:['T','L1','L2','L3'],'C♯4':['T','L1','L2','L3','C#'],D4:['T','L1','L2'],'D♯4':['T','L1','L2','Eb'],E4:['T','L1'],F4:['T'],'F♯4':['L1'],G4:[],'G♯4':['G#-side'],A4:['A'],'A♯4':['R','A'],B4:['T','R','L1','L2','L3','R1','R2','R3','E/B'],C5:['T','R','L1','L2','L3','R1','R2','R3','F'],'C♯5':['T','R','L1','L2','L3','R1','R2','R3','F#'],D5:['T','R','L1','L2','L3','R1','R2','R3'],'D♯5':['T','R','L1','L2','L3','R1','R2','R3','G#'],E5:['T','R','L1','L2','L3','R1','R2'],F5:['T','R','L1','L2','L3','R1'],'F♯5':['T','R','L1','L2','L3','R2'],G5:['T','R','L1','L2','L3'],'G♯5':['T','R','L1','L2','L3','C#'],A5:['T','R','L1','L2'],'A♯5':['T','R','L1','L2','Eb'],B5:['T','R','L1'],C6:['T','R'],'C♯6':['T','R','L2','L3','R1','R2'],D6:['T','R','L2','L3','R1','G#'],'D♯6':['T','R','L2','L3','R1','B','G#'],E6:['T','R','L2','L3','G#'],F6:['T','R','L2','L3','C#','G#'],'F♯6':['T','R','L2','G#'],G6:['T','R','L2','R1','R2','G#']
   };
-  const pressed=new Set();let selectedWrittenMidi=null,highRegister=false,practiceTarget=null,fingerGuide=true,practiceStatus=null,keyboardNote={code:null,label:null,chartLabel:null,voice:null},registerLatched=false,clarinetAccidental='natural',startNoteShortcut=()=>false,setAccidental=()=>{},stopOpenClarinet=()=>{},fluteAccidental='natural',fluteKeyboardNote={code:null,label:null,voice:null},startFluteNoteShortcut=()=>false,setFluteAccidental=()=>{},setFluteRegister=()=>{};
+  const pressed=new Set(),heldDirectNoteKeys=new Set();let selectedWrittenMidi=null,highRegister=false,practiceTarget=null,fingerGuide=true,practiceStatus=null,keyboardNote={code:null,label:null,chartLabel:null,voice:null},registerLatched=false,keyboardMode='notes',clarinetAccidental='natural',startNoteShortcut=()=>false,setAccidental=()=>{},stopOpenClarinet=()=>{},fluteAccidental='natural',fluteKeyboardNote={code:null,label:null,voice:null},startFluteNoteShortcut=()=>false,setFluteAccidental=()=>{},setFluteRegister=()=>{};
   art.innerHTML=id==='flute'?renderFluteSvg():renderClarinetSvg();
   const clarinetFunctions=new Map([...art.querySelectorAll('.clarinet-key')].map(key=>[key.dataset.key,key.dataset.function||key.dataset.key]));
   const currentFingering=()=>id==='clarinet'?new Set([...pressed].map(key=>clarinetFunctions.get(key)||key)):pressed;
@@ -402,13 +402,16 @@ function buildWind(id){
   if(id==='clarinet'){
     const mouthpiece=art.querySelector('.clarinet-mouthpiece');let openVoice=null;
     mouthpiece.setAttribute('role','button');mouthpiece.setAttribute('tabindex','0');mouthpiece.setAttribute('aria-label','Hold the clarinet mouthpiece to play open written G4');mouthpiece.setAttribute('aria-pressed','false');
-    const startOpen=event=>{if(pressed.size||openVoice)return;if(event){event.preventDefault();try{mouthpiece.setPointerCapture(event.pointerId)}catch{}}void ensureAudioReady();openVoice=playInstrumentNote('clarinet',midiForName('G4')-2,.24,'Open G4 · breath');mouthpiece.classList.add('mouthpiece-active');mouthpiece.setAttribute('aria-pressed','true');document.querySelector('#note-info').textContent=`Clarinet · Written G4 · concert ${pitchName(midiForName('G4')-2)} · open fingering`;if(practiceStatus&&practiceTarget==='G4'){practiceStatus.textContent='Correct · Written G4 · concert '+pitchName(midiForName('G4')-2);practiceStatus.classList.add('practice-success')}};
+    const startOpen=event=>{if(heldDirectNoteKeys.size){clearDirectNoteState(true);stopInstrumentSounds('clarinet',true);updateWindDiagram(pressed)}if(pressed.size||openVoice)return;if(event){event.preventDefault();try{mouthpiece.setPointerCapture(event.pointerId)}catch{}}void ensureAudioReady();openVoice=playInstrumentNote('clarinet',midiForName('G4')-2,.24,'Open G4 · breath');mouthpiece.classList.add('mouthpiece-active');mouthpiece.setAttribute('aria-pressed','true');document.querySelector('#note-info').textContent=`Clarinet · Written G4 · concert ${pitchName(midiForName('G4')-2)} · open fingering`;if(practiceStatus&&practiceTarget==='G4'){practiceStatus.textContent='Correct · Written G4 · concert '+pitchName(midiForName('G4')-2);practiceStatus.classList.add('practice-success')}};
     const stopOpen=()=>{if(!openVoice)return;stopVoice(openVoice,false);openVoice=null;mouthpiece.classList.remove('mouthpiece-active');mouthpiece.setAttribute('aria-pressed','false')};stopOpenClarinet=stopOpen;
     mouthpiece.addEventListener('pointerdown',startOpen);mouthpiece.addEventListener('pointerup',stopOpen);mouthpiece.addEventListener('pointercancel',stopOpen);mouthpiece.addEventListener('lostpointercapture',stopOpen);mouthpiece.addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.repeat){event.preventDefault();startOpen()}});mouthpiece.addEventListener('keyup',event=>{if(event.key==='Enter')stopOpen()});
   }  const heldInputs=new Map(),heldComputerKeys=new Map();
-  const pressWindKey=(key,source)=>{if(id==='clarinet')void ensureAudioReady();const keyName=key.dataset.key,holders=heldInputs.get(keyName)||new Set();if(holders.has(source))return;holders.add(source);heldInputs.set(keyName,holders);if(pressed.has(keyName))return;pressed.add(keyName);if(id==='clarinet'&&keyName==='R'&&keyboardNote.code){updateWindDiagram(pressed);startNoteShortcut(keyboardNote.code);return}updateWindDiagram(pressed);playRecognizedFingering()};
-  const releaseWindKey=(key,source)=>{const keyName=key.dataset.key,holders=heldInputs.get(keyName);if(!holders?.has(source))return;holders.delete(source);if(holders.size)return;heldInputs.delete(keyName);pressed.delete(keyName);if(id==='clarinet'&&keyName==='R'&&keyboardNote.code){updateWindDiagram(pressed);startNoteShortcut(keyboardNote.code);return}updateWindDiagram(pressed);if(id==='clarinet'&&pressed.size){playRecognizedFingering();return}stopInstrumentSounds(id,false,id==='clarinet'?.008:.11);for(const note of pendingNotes[id]||[])stopVoice(note,true);pendingNotes[id]=[];document.querySelector('#note-info').textContent=`${info[id].name} · Released · ${[...pressed].join(', ')||'all keys open'}`};
-  clearWindControls=()=>{if(id==='flute')releaseFluteKeyboard();stopOpenClarinet();if(keyboardNote.voice)stopVoice(keyboardNote.voice,true);keyboardNote={code:null,label:null,voice:null};registerLatched=false;pressed.clear();heldInputs.clear();heldComputerKeys.clear();updateWindDiagram(pressed);stopInstrumentSounds(id,true);for(const note of pendingNotes[id]||[])stopVoice(note,true);pendingNotes[id]=[]};
+  const clearDirectNoteState=(immediate=true)=>{heldDirectNoteKeys.clear();registerLatched=false;if(keyboardNote.voice)stopVoice(keyboardNote.voice,immediate,.006);keyboardNote={code:null,label:null,chartLabel:null,voice:null}};
+  const stopPendingWindNotes=()=>{for(const note of pendingNotes[id]||[])stopVoice(note,true);pendingNotes[id]=[]};
+  const pressWindKey=(key,source)=>{if(id==='clarinet'){void ensureAudioReady();stopOpenClarinet();if(heldDirectNoteKeys.size){clearDirectNoteState(true);stopInstrumentSounds('clarinet',true);stopPendingWindNotes()}}const keyName=key.dataset.key,holders=heldInputs.get(keyName)||new Set();if(holders.has(source))return;holders.add(source);heldInputs.set(keyName,holders);if(pressed.has(keyName))return;pressed.add(keyName);updateWindDiagram(pressed);playRecognizedFingering()};
+  const releaseWindKey=(key,source)=>{const keyName=key.dataset.key,holders=heldInputs.get(keyName);if(!holders?.has(source))return;holders.delete(source);if(holders.size)return;heldInputs.delete(keyName);pressed.delete(keyName);updateWindDiagram(pressed);if(pressed.size){playRecognizedFingering();return}stopInstrumentSounds(id,false,id==='clarinet'?.008:.11);stopPendingWindNotes();document.querySelector('#note-info').textContent=`${info[id].name} · Released · all keys open`};
+  const resetClarinetInput=()=>{clearDirectNoteState(true);pressed.clear();heldInputs.clear();heldComputerKeys.clear();stopOpenClarinet();window.clearTimeout(clarinetRhythmFingeringTimer);clarinetRhythmFingeringTimer=0;selectedWrittenMidi=null;stopInstrumentSounds('clarinet',true);stopPendingWindNotes();updateWindDiagram(pressed)};
+  clearWindControls=()=>{if(id==='flute')releaseFluteKeyboard();if(id==='clarinet')resetClarinetInput();else{pressed.clear();heldInputs.clear();heldComputerKeys.clear();updateWindDiagram(pressed);stopInstrumentSounds(id,true);stopPendingWindNotes()}};
   art.querySelectorAll('.wind-key[data-key]').forEach(key=>{
     key.setAttribute('role','button');key.setAttribute('tabindex','0');key.setAttribute('aria-pressed','false');key.setAttribute('aria-label',id==='clarinet'?`Press ${key.dataset.key} with ${key.dataset.finger||'the correct finger'}`:`Press flute key ${key.dataset.key}`);
     if(id==='clarinet'){
@@ -424,50 +427,57 @@ function buildWind(id){
   });
   if(id==='clarinet'){
     const isTypingTarget=target=>target instanceof Element&&!!target.closest('input,textarea,select,[contenteditable="true"],[role="textbox"]');
-    const releaseActiveNote=code=>{
-      if(keyboardNote.code!==code)return false;
-      const oldVoice=keyboardNote.voice;keyboardNote={code:null,label:null,voice:null};if(oldVoice)stopVoice(oldVoice,false,.008);
-      updateWindDiagram(pressed);
-      if(pressed.size)playRecognizedFingering();
-      else{stopInstrumentSounds('clarinet',false,.008);for(const note of pendingNotes.clarinet||[])stopVoice(note,true);pendingNotes.clarinet=[];document.querySelector('#note-info').textContent='Clarinet · Released';}
-      return true;
-    };
-    startNoteShortcut=code=>{
+    const clearPhysicalKeyboard=()=>{for(const [code,key] of heldComputerKeys){const keyName=key.dataset.key,holders=heldInputs.get(keyName);holders?.delete(`computer:${code}`);if(!holders?.size){heldInputs.delete(keyName);pressed.delete(keyName)}}heldComputerKeys.clear();updateWindDiagram(pressed)};
+    const refreshNoteShortcut=()=>{
+      const code=[...heldDirectNoteKeys].at(-1);
+      if(!code){const oldVoice=keyboardNote.voice;keyboardNote={code:null,label:null,chartLabel:null,voice:null};if(oldVoice)stopVoice(oldVoice,false,.008);updateWindDiagram(pressed);if(pressed.size)playRecognizedFingering();else{stopInstrumentSounds('clarinet',false,.008);stopPendingWindNotes();document.querySelector('#note-info').textContent='Clarinet · Released'}return false}
       const baseLabel=clarinetNoteKeyboardMap[code];if(!baseLabel)return false;
-      const naturalLabel=pressed.has('R')||registerLatched?baseLabel.replace(/4$/,'5'):baseLabel;
+      const naturalLabel=registerLatched?baseLabel.replace(/4$/,'5'):baseLabel;
       const adjustment=clarinetAccidental==='sharp'?1:clarinetAccidental==='flat'?-1:0,writtenMidi=midiForName(naturalLabel)+adjustment;
       const symbol=clarinetAccidental==='sharp'?'♯':clarinetAccidental==='flat'?'♭':'';
       const label=`${naturalLabel[0]}${symbol}${naturalLabel.slice(1)}`;
-      const chartLabel=Object.keys(fingeringMap).find(candidate=>midiForName(candidate)===writtenMidi);if(!chartLabel)return false;
-      if(keyboardNote.code===code&&keyboardNote.label===label)return true;
-      if(keyboardNote.voice)stopVoice(keyboardNote.voice,false,.001);
+      const chartLabel=Object.keys(fingeringMap).find(candidate=>midiForName(candidate)===writtenMidi);if(!chartLabel){stopInstrumentSounds('clarinet',true);stopPendingWindNotes();keyboardNote={code,label,chartLabel:null,voice:null};document.querySelector('#note-info').textContent=`Clarinet · No chart fingering for ${label}`;return false}
+      if(keyboardNote.code===code&&keyboardNote.label===label&&keyboardNote.voice&&!keyboardNote.voice.stopped)return true;
+      if(keyboardNote.voice)stopVoice(keyboardNote.voice,true);
+      stopInstrumentSounds('clarinet',true);stopPendingWindNotes();
       const concertMidi=writtenMidi-2;keyboardNote={code,label,chartLabel,voice:null};selectedWrittenMidi=writtenMidi;
       updateWindDiagram(new Set(fingeringMap[chartLabel]||[]));keyboardNote.voice=playInstrumentNote('clarinet',concertMidi,.24,`Keyboard note · Written ${label}`);
       document.querySelector('#note-info').textContent=`Clarinet · Written ${label} · concert ${pitchName(concertMidi)} · keyboard note`;
       if(practiceStatus&&practiceTarget){const hit=midiForName(practiceTarget)===writtenMidi;practiceStatus.textContent=hit?`Correct · Written ${label} · concert ${pitchName(concertMidi)}`:`Detected ${label} · keep trying for ${practiceTarget}`;practiceStatus.classList.toggle('practice-success',hit)}
       return true;
     };
-    releaseClarinetKeyboard=()=>{if(keyboardNote.voice)stopVoice(keyboardNote.voice,true);keyboardNote={code:null,label:null,voice:null};registerLatched=false;for(const [code,key] of [...heldComputerKeys])releaseWindKey(key,`computer:${code}`);heldComputerKeys.clear();updateWindDiagram(pressed)};
+    startNoteShortcut=code=>{
+      if(keyboardMode!=='notes'||!clarinetNoteKeyboardMap[code])return false;
+      if(!heldDirectNoteKeys.size){stopOpenClarinet();clearPhysicalKeyboard();pressed.clear();heldInputs.clear();stopInstrumentSounds('clarinet',true);stopPendingWindNotes()}
+      heldDirectNoteKeys.add(code);return refreshNoteShortcut();
+    };
+    const releaseNoteShortcut=code=>{if(!heldDirectNoteKeys.delete(code))return false;return refreshNoteShortcut()};
+    const releaseRegisterModifier=()=>{if(!registerLatched)return;registerLatched=false;if(heldDirectNoteKeys.size)refreshNoteShortcut()};
+    releaseClarinetKeyboard=()=>{resetClarinetInput()};
     clarinetKeyboardKeydown=event=>{
       if(player.classList.contains('hidden')||player.dataset.instrument!=='clarinet'||isTypingTarget(event.target)||event.ctrlKey||event.altKey||event.metaKey)return;
       if(event.code==='Space'&&!document.querySelector('#song-picker').classList.contains('hidden'))return;
       if(event.code==='Space'){event.preventDefault();if(!event.repeat){if(rhythmState?.instrument==='clarinet')toggleRhythmPause();else{stopPlayback();document.querySelector('#sound-caption').textContent='Playback stopped'}}return}
       if(event.code==='BracketLeft'||event.code==='BracketRight'){event.preventDefault();if(!event.repeat)setAccidental(event.code==='BracketRight'?'sharp':'flat');return}
-      if(clarinetNoteKeyboardMap[event.code]&&rhythmState?.instrument!=='clarinet'){event.preventDefault();if(!event.repeat)startNoteShortcut(event.code);return}
-      const modelKey=clarinetKeyboardMap[event.code];if(!modelKey)return;event.preventDefault();if(event.repeat||heldComputerKeys.has(event.code))return;if(event.code==='KeyW')registerLatched=!registerLatched;
+      if(keyboardMode==='notes'){
+        if(event.code==='KeyW'){event.preventDefault();if(!registerLatched){registerLatched=true;if(heldDirectNoteKeys.size)refreshNoteShortcut()}return}
+        if(clarinetNoteKeyboardMap[event.code]){event.preventDefault();if(!event.repeat)startNoteShortcut(event.code);return}
+        return;
+      }
+      const modelKey=clarinetKeyboardMap[event.code];if(!modelKey)return;event.preventDefault();if(event.repeat||heldComputerKeys.has(event.code))return;
       const key=art.querySelector(`.clarinet-key[data-key="${modelKey}"]`);if(!key)return;heldComputerKeys.set(event.code,key);pressWindKey(key,`computer:${event.code}`);
     };
-    clarinetKeyboardKeyup=event=>{if(player.dataset.instrument!=='clarinet')return;if(event.code==='Space'){event.preventDefault();return}if(keyboardNote.code===event.code){event.preventDefault();releaseActiveNote(event.code);return}const key=heldComputerKeys.get(event.code);if(!key||isTypingTarget(event.target))return;event.preventDefault();heldComputerKeys.delete(event.code);releaseWindKey(key,`computer:${event.code}`)};
+    clarinetKeyboardKeyup=event=>{if(player.dataset.instrument!=='clarinet')return;if(event.code==='Space'){event.preventDefault();return}if(heldDirectNoteKeys.has(event.code)){event.preventDefault();releaseNoteShortcut(event.code);return}if(event.code==='KeyW'&&registerLatched&&keyboardMode==='notes'){event.preventDefault();releaseRegisterModifier();return}const key=heldComputerKeys.get(event.code);if(!key)return;event.preventDefault();heldComputerKeys.delete(event.code);releaseWindKey(key,`computer:${event.code}`)};
   }  let clarinetRhythmFingeringTimer=0;
   function playRecognizedFingering(){
     const evaluate=()=>{
       const soundingKeys=currentFingering(),matches=notes[id].filter(([label])=>fingeringMap[label]&&sameKeySet(soundingKeys,new Set(fingeringMap[label])));
-      if(!matches.length){if(id==='clarinet'&&rhythmState?.instrument==='clarinet'){judgeRhythmInput('clarinet',null);return}stopInstrumentSounds(id);for(const note of pendingNotes[id]||[])stopVoice(note,true);pendingNotes[id]=[];document.querySelector('#note-info').textContent=`${info[id].name} · ${pressed.size?'No mapped fingering':'All keys open'}`;return}
+      if(!matches.length){stopInstrumentSounds(id);for(const note of pendingNotes[id]||[])stopVoice(note,true);pendingNotes[id]=[];document.querySelector('#note-info').textContent=`${info[id].name} · ${pressed.size?'No mapped fingering':'All keys open'}`;return}
       const registerMatches=id==='flute'?matches.filter(candidate=>highRegister?candidate[1]>=84:candidate[1]<84):matches,candidates=registerMatches.length?registerMatches:matches,preferred=selectedWrittenMidi??(id==='flute'?(highRegister?84:72):60),chosen=candidates.reduce((best,candidate)=>Math.abs(candidate[1]-preferred)<Math.abs(best[1]-preferred)?candidate:best,candidates[0]);
       selectedWrittenMidi=chosen[1];const soundingMidi=id==='clarinet'?chosen[1]-2:chosen[1],label=id==='clarinet'?`Written ${chosen[0]} · concert ${pitchName(soundingMidi)}`:chosen[0];if(practiceStatus&&practiceTarget){const hit=chosen[0]===practiceTarget;practiceStatus.textContent=hit?`Correct · ${label}`:`Detected ${label} · keep trying for ${practiceTarget}`;practiceStatus.classList.toggle('practice-success',hit)}
       playInstrumentNote(id,soundingMidi,.24,`Fingering · ${[...pressed].join(', ')||'open'}`);document.querySelector('#note-info').textContent=`${info[id].name} · ${label} · ${[...pressed].join(', ')||'open'}`;
     };
-    if(id==='clarinet'&&rhythmState?.instrument==='clarinet'){window.clearTimeout(clarinetRhythmFingeringTimer);clarinetRhythmFingeringTimer=window.setTimeout(evaluate,70);return}
+    if(id==='clarinet'&&rhythmState?.instrument==='clarinet'){window.clearTimeout(clarinetRhythmFingeringTimer);clarinetRhythmFingeringTimer=window.setTimeout(evaluate,14);return}
     evaluate();
   }
   if(id==='flute'){
@@ -577,17 +587,27 @@ function buildWind(id){
     const flatButton=makeButton('♭ Flat','clarinet-accidental-button');flatButton.setAttribute('aria-label','Toggle flat notes');flatButton.setAttribute('aria-pressed','false');
     setAccidental=mode=>{clarinetAccidental=clarinetAccidental===mode?'natural':mode;sharpButton.classList.toggle('active',clarinetAccidental==='sharp');flatButton.classList.toggle('active',clarinetAccidental==='flat');sharpButton.setAttribute('aria-pressed',String(clarinetAccidental==='sharp'));flatButton.setAttribute('aria-pressed',String(clarinetAccidental==='flat'));if(keyboardNote.code)startNoteShortcut(keyboardNote.code);else document.querySelector('#note-info').textContent=`Clarinet · ${clarinetAccidental==='natural'?'Natural notes':`${clarinetAccidental==='sharp'?'Sharp':'Flat'} mode selected`}`};
     sharpButton.addEventListener('click',()=>setAccidental('sharp'));flatButton.addEventListener('click',()=>setAccidental('flat'));accidentalControls.append(accidentalLabel,sharpButton,flatButton);
+    const keyboardModeControls=document.createElement('div');keyboardModeControls.className='clarinet-keyboard-modes';keyboardModeControls.setAttribute('role','group');keyboardModeControls.setAttribute('aria-label','Choose clarinet computer keyboard input mode');
+    const keyboardModeLabel=document.createElement('span');keyboardModeLabel.className='clarinet-accidental-label';keyboardModeLabel.textContent='Computer keyboard mode';
+    const noteModeButton=makeButton('Direct notes · C–B','clarinet-practice-button');noteModeButton.setAttribute('aria-pressed','true');
+    const fingeringModeButton=makeButton('Physical fingering keys','clarinet-practice-button');fingeringModeButton.setAttribute('aria-pressed','false');
+    const keyboardModeStatus=document.createElement('span');keyboardModeStatus.className='clarinet-keyboard-mode-status';keyboardModeStatus.setAttribute('aria-live','polite');
+    const updateKeyboardMode=()=>{const direct=keyboardMode==='notes';noteModeButton.setAttribute('aria-pressed',String(direct));fingeringModeButton.setAttribute('aria-pressed',String(!direct));keyboardModeStatus.textContent=direct?'C–B plays one written note; hold W to raise it an octave.':'Hold mapped clarinet keys together; their full combination determines the note.'};
+    const selectKeyboardMode=mode=>{if(keyboardMode===mode)return;resetClarinetInput();keyboardMode=mode;updateKeyboardMode();document.querySelector('#note-info').textContent=mode==='notes'?'Clarinet · Direct note keyboard selected':'Clarinet · Physical fingering keyboard selected'};
+    noteModeButton.addEventListener('click',()=>selectKeyboardMode('notes'));fingeringModeButton.addEventListener('click',()=>selectKeyboardMode('physical'));keyboardModeControls.append(keyboardModeLabel,noteModeButton,fingeringModeButton,keyboardModeStatus);updateKeyboardMode();
     const keyboardGuide=document.createElement('details');keyboardGuide.className='clarinet-keyboard-guide';const keyboardSummary=document.createElement('summary');keyboardSummary.textContent='Computer keyboard guide';keyboardGuide.append(keyboardSummary);
     const keyboardList=document.createElement('div');keyboardList.className='clarinet-keyboard-list';
     [['[','BracketLeft','flat'],[']','BracketRight','sharp']].forEach(([capText,,mode])=>{const row=document.createElement('div');row.className='clarinet-keyboard-row';const cap=document.createElement('kbd');cap.textContent=capText;const description=document.createElement('span');description.textContent=`Toggle ${mode}; press again for natural`;row.append(cap,description);keyboardList.append(row)});
+    const noteSection=document.createElement('strong');noteSection.className='clarinet-keyboard-section-label';noteSection.textContent='Direct note shortcuts · active in Direct notes mode';keyboardList.append(noteSection);
     Object.entries(clarinetNoteKeyboardMap).forEach(([code,label])=>{const row=document.createElement('div');row.className='clarinet-keyboard-row';const cap=document.createElement('kbd');cap.textContent=code.replace(/^Key/,'');const description=document.createElement('span');description.textContent=`Play written ${label} · concert ${pitchName(midiForName(label)-2)}`;row.append(cap,description);keyboardList.append(row)});
+    const physicalSection=document.createElement('strong');physicalSection.className='clarinet-keyboard-section-label';physicalSection.textContent='Physical clarinet controls · active in Physical fingering mode';keyboardList.append(physicalSection);
     Object.entries(clarinetKeyboardMap).forEach(([code,modelKey])=>{const row=document.createElement('div');row.className='clarinet-keyboard-row';const cap=document.createElement('kbd');cap.textContent=code.replace(/^Key/,'');const key=art.querySelector(`.clarinet-key[data-key="${modelKey}"]`);const description=document.createElement('span');description.textContent=`${key?.dataset.finger||'Clarinet'} · ${modelKey}`;row.append(cap,description);keyboardList.append(row)});
     const stopRow=document.createElement('div');stopRow.className='clarinet-keyboard-row';const spaceCap=document.createElement('kbd');spaceCap.textContent='Space';const stopDescription=document.createElement('span');stopDescription.textContent='Stop all sound';stopRow.append(spaceCap,stopDescription);keyboardList.append(stopRow);keyboardGuide.append(keyboardList);
     const chart=document.createElement('details');chart.className='clarinet-chart';const summary=document.createElement('summary');summary.textContent='Fingering chart · written notes';chart.append(summary);
     const chartList=document.createElement('div');chartList.className='clarinet-chart-list';
     notes.clarinet.filter(([label])=>fingeringMap[label]).forEach(([label,midi])=>{const row=makeButton('','clarinet-chart-note');row.setAttribute('aria-label',`Show fingering for written ${label}, concert ${pitchName(midi-2)}`);const noteName=document.createElement('strong');noteName.textContent=label;const concertName=document.createElement('span');concertName.textContent=`Concert ${pitchName(midi-2)}`;const keyNames=document.createElement('small');keyNames.textContent=(fingeringMap[label].length?fingeringMap[label].join(' + '):'Open fingering · hold mouthpiece');row.append(noteName,concertName,keyNames);row.addEventListener('click',()=>setTarget(label));chartList.append(row)});
-    const sourceNote=document.createElement('p');sourceNote.className='clarinet-chart-source';sourceNote.textContent='Boehm B♭ soprano clarinet · written E3–G6 · transposing pitch is written note down a major second. Core fingerings follow the Woodwind Fingering Guide.';chart.append(chartList,sourceNote);practice.append(practiceHead,practiceActions,accidentalControls,keyboardGuide,chart);controls.append(practice);
-  }  const tip=document.createElement('p');tip.className='key-hint';tip.textContent=id==='clarinet'?'Use C–B for notes. Press [ for flat or ] for sharp; press the same key again for natural. W toggles the higher register.':id==='flute'?'Use C-B for flute notes. Press W or the embouchure to switch octaves; [ and ] toggle flat and sharp.':'Tap the instrument keys to cover or uncover them; a matching fingering plays its note.';controls.append(tip);
+    const sourceNote=document.createElement('p');sourceNote.className='clarinet-chart-source';sourceNote.textContent='Boehm B♭ soprano clarinet · written E3–G6 · transposing pitch is written note down a major second. Core fingerings follow the Woodwind Fingering Guide.';chart.append(chartList,sourceNote);practice.append(practiceHead,practiceActions,accidentalControls,keyboardModeControls,keyboardGuide,chart);controls.append(practice);
+  }  const tip=document.createElement('p');tip.className='key-hint';tip.textContent=id==='clarinet'?'Choose Direct notes or Physical fingering mode above. In physical mode, hold the mapped keys together; use [ for flat and ] for sharp.':id==='flute'?'Use C-B for flute notes. Press W or the embouchure to switch octaves; [ and ] toggle flat and sharp.':'Tap the instrument keys to cover or uncover them; a matching fingering plays its note.';controls.append(tip);
 }
 function buildStrings(id){
   if(id==='violin'){

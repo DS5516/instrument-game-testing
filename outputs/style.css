@@ -638,3 +638,52 @@ body{background:radial-gradient(ellipse at 50% -12%,#16345b 0,#0a1a31 42%,#06122
 .daily-challenge-banner,.composer-toolbar{display:flex;align-items:center;gap:10px;margin:0 0 12px;padding:10px 12px;border:1px solid #3c5782;border-radius:11px;background:linear-gradient(110deg,#122a48,#1b2850);color:#e4edff;font-size:11px}.daily-challenge-banner>span,.composer-toolbar>span{flex:1}.daily-challenge-banner progress{width:min(160px,24vw);height:9px;accent-color:#a394ff}.daily-challenge-banner button,.composer-toolbar button{min-height:32px;padding:6px 10px;border:1px solid #4b6690;border-radius:8px;background:#1a365a;color:#dceaff;font:600 10px 'DM Sans',sans-serif;cursor:pointer}.composer-toolbar{border-color:#755a95;background:linear-gradient(105deg,#291f43,#18304d)}
 .practice-option.tempo-option{min-width:min(100%,270px)}.tempo-option input[type=range]{width:100px;accent-color:#a394ff}
 @media(max-width:700px){.composer-options{grid-template-columns:1fr}.composition-card{align-items:flex-start;flex-direction:column}.composition-actions{width:100%}.composition-actions button{flex:1}.daily-challenge-banner,.composer-toolbar{align-items:flex-start;flex-wrap:wrap}.daily-challenge-banner>span,.composer-toolbar>span{flex-basis:100%}.daily-challenge-banner progress{width:100%}.rhythm-options .practice-option{min-width:0}.tempo-option input[type=range]{width:110px}}
+
+/* Keep the selected instrument, live input feedback, and basic controls together in view. */
+.player:not(.rhythm-playing){margin:0 auto;padding:8px 0 12px}
+.player:not(.rhythm-playing) .player-heading{margin-bottom:7px;min-height:42px}
+.player:not(.rhythm-playing) .instrument-title .eyebrow{display:none}
+.player:not(.rhythm-playing) .instrument-title{gap:9px}
+.player:not(.rhythm-playing) .instrument-title h1{font-size:clamp(23px,3vw,29px);letter-spacing:-.35px}
+.player:not(.rhythm-playing) .title-icon{width:38px;height:38px;border-radius:12px;font-size:21px}
+.player:not(.rhythm-playing) .instrument-switcher{margin:0 0 8px;padding:0 2px 5px;gap:5px}
+.player:not(.rhythm-playing) .instrument-switch-tab{min-height:35px;padding:6px 9px;border-radius:9px;font-size:10px}
+.keyboard-feedback{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:42px;margin:0 0 9px;padding:7px 11px;border:1px solid #30496d;border-radius:11px;background:linear-gradient(110deg,#0b1b30,#142746);color:#e4edff}
+.keyboard-feedback-item{display:flex;align-items:center;gap:8px;min-width:0}
+.keyboard-feedback-label{flex:none;color:#91a9cb;font:600 9px 'DM Mono',monospace;letter-spacing:.45px;text-transform:uppercase}
+.keyboard-feedback output{min-width:0;overflow:hidden;color:#f0f4ff;font:700 12px 'DM Mono',monospace;text-overflow:ellipsis;white-space:nowrap}
+.keyboard-feedback output:empty:after{content:'—';color:#8397b2}
+.player:not(.rhythm-playing) .stage{height:clamp(300px,calc(100svh - 390px),510px);min-height:0;padding:clamp(10px,1.8vh,18px);overflow:auto;overscroll-behavior:contain}
+.player:not(.rhythm-playing) .stage:before{pointer-events:none}
+.player:not(.rhythm-playing) .instrument-art{margin-bottom:clamp(7px,1.2vh,12px)}
+.player:not(.rhythm-playing) .flute-diagram{max-height:min(27vh,235px)}
+.player:not(.rhythm-playing) .clarinet-diagram{height:min(45vh,370px);max-height:370px}
+.player:not(.rhythm-playing) .violin-diagram{max-height:min(27vh,235px)}
+.player:not(.rhythm-playing) .guitar-diagram{max-height:min(28vh,245px)}
+.player:not(.rhythm-playing) .keys{height:min(32vh,215px)}
+.player:not(.rhythm-playing) .white-key{height:min(32vh,215px)}
+.player:not(.rhythm-playing) .black-key{height:min(20vh,132px)}
+.player:not(.rhythm-playing) .drum-kit{height:min(34vh,260px)}
+.player:not(.rhythm-playing) .player-footer{margin-top:8px;gap:8px;font-size:10px}
+.player:not(.rhythm-playing) .note-info{padding:6px 9px;font-size:10px}
+.player:not(.rhythm-playing)>.first-play-tutorial{margin:8px 0 0}
+.player.rhythm-playing>#keyboard-feedback{display:none!important}
+@media(max-width:700px){
+  .player:not(.rhythm-playing){padding:8px 0 10px}
+  .player:not(.rhythm-playing) .player-heading{margin-bottom:6px}
+  .player:not(.rhythm-playing) .instrument-switcher{margin-bottom:6px}
+  .keyboard-feedback{min-height:40px;padding:6px 8px;gap:6px}
+  .keyboard-feedback-item{gap:5px}
+  .keyboard-feedback-label{font-size:8px;letter-spacing:.2px}
+  .keyboard-feedback output{font-size:10px}
+  .player:not(.rhythm-playing) .stage{height:clamp(250px,calc(100dvh - 420px),410px);padding:10px;overflow:auto}
+  .player:not(.rhythm-playing) .flute-diagram{max-height:22vh}
+  .player:not(.rhythm-playing) .clarinet-diagram{height:min(38vh,290px);max-height:290px}
+  .player:not(.rhythm-playing) .violin-diagram{max-height:23vh}
+  .player:not(.rhythm-playing) .guitar-diagram{max-height:24vh}
+  .player:not(.rhythm-playing) .keys,.player:not(.rhythm-playing) .white-key{height:min(30vh,190px)}
+  .player:not(.rhythm-playing) .black-key{height:min(18vh,112px)}
+  .player:not(.rhythm-playing) .drum-kit{height:min(32vh,220px)}
+  .player:not(.rhythm-playing) .player-footer{margin-top:7px}
+}
+@media(max-width:390px){.keyboard-feedback{align-items:flex-start;flex-direction:column;gap:3px}.keyboard-feedback-item{width:100%;justify-content:space-between}.player:not(.rhythm-playing) .stage{height:clamp(250px,calc(100dvh - 395px),370px)}}

@@ -305,7 +305,6 @@ body:has(#welcome:not(.hidden)) .page-footer,body:has(.home-page:not(.hidden)) .
 .clarinet-practice-actions{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
 .clarinet-keyboard-modes{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 0 10px}
 .clarinet-keyboard-mode-status{flex-basis:100%;color:#758071;font:10px 'DM Sans',sans-serif}
-.clarinet-keyboard-section-label{grid-column:1/-1;padding-top:5px;color:#586653;font:600 10px 'DM Sans',sans-serif}
 .clarinet-practice-button{min-height:38px;padding:8px 12px;border:1px solid #d7ddd4;border-radius:999px;background:#f3f6f0;color:#435847;font:600 11px 'DM Sans',sans-serif;cursor:pointer;touch-action:manipulation}
 .clarinet-practice-button[aria-pressed=true]{background:#e1ecdf;border-color:#8fa88d}
 .clarinet-chart{border-top:1px solid #e9e7df;padding-top:9px}
@@ -398,6 +397,7 @@ body:has(#welcome:not(.hidden)) .page-footer,body:has(.home-page:not(.hidden)) .
 .clarinet-art .clarinet-pinky-stack{fill:none;stroke:url(#clarinetSilver);stroke-width:4;stroke-linecap:round;filter:drop-shadow(0 1px 1px #050706)}
 .clarinet-art .clarinet-key-name{font:600 8px 'DM Mono',monospace;fill:#eee8d8;stroke:#111511;stroke-width:2px;paint-order:stroke;pointer-events:none}
 .clarinet-art .wind-key text.clarinet-computer-key{font-size:8px;fill:#f3d26d}
+.clarinet-art.clarinet-direct-note-mode .clarinet-computer-key{display:none}
 .clarinet-art .clarinet-key.pressed .key-rim{filter:drop-shadow(0 0 5px #d9d0a5)}
 .clarinet-art .clarinet-key .key-pad{transform-box:fill-box;transform-origin:center;transition:transform .1s,fill .1s}
 .clarinet-art .clarinet-key.pressed .key-pad{transform:translateY(2px)}

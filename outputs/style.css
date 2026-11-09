@@ -563,6 +563,8 @@ body:has(#welcome:not(.hidden)) .page-footer,body:has(.home-page:not(.hidden)) .
 .guitar-fingerboard .neck-string.selected-position{background:linear-gradient(90deg,#94b58400,#97bd7a40 35%,#97bd7a22);box-shadow:inset 0 0 0 1px #b6d49a55}
 .guitar-selected-fret{position:absolute;z-index:4;left:var(--selected-fret,3%);top:50%;width:28px;height:28px;border:2px solid #eef7de;border-radius:50%;background:#7ea16d99;box-shadow:0 0 0 3px #45623f66,0 0 13px #d8f0bf;opacity:0;transform:translate(-50%,-50%);pointer-events:none;transition:left .08s,opacity .1s}
 .guitar-fingerboard .neck-string.selected-position .guitar-selected-fret{opacity:1}
+.guitar-note-key-label{position:absolute;z-index:7;display:grid;place-items:center;width:20px;height:18px;border:1px solid #c9d4e6;border-radius:5px;background:#10213ad9;color:#f2f6ff;font:700 8px 'DM Mono',monospace;box-shadow:0 1px 3px #0009;transform:translate(-50%,-50%);pointer-events:none;transition:background .08s,box-shadow .08s,transform .08s}
+.guitar-note-key-label.active{background:#7b9f70;color:#142114;box-shadow:0 0 0 3px #bad9a355,0 0 14px #b7df9e;transform:translate(-50%,-50%) scale(1.12)}
 @media(max-width:700px){.guitar-diagram{max-height:none}.guitar-fingerboard{height:210px}.guitar-selected-fret{width:24px;height:24px}}
 
 /* Make each playable drum read as a drum head or metal cymbal. */
@@ -653,7 +655,7 @@ body{background:radial-gradient(ellipse at 50% -12%,#16345b 0,#0a1a31 42%,#06122
 .keyboard-feedback-label{flex:none;color:#91a9cb;font:600 9px 'DM Mono',monospace;letter-spacing:.45px;text-transform:uppercase}
 .keyboard-feedback output{min-width:0;overflow:hidden;color:#f0f4ff;font:700 12px 'DM Mono',monospace;text-overflow:ellipsis;white-space:nowrap}
 .keyboard-feedback output:empty:after{content:'—';color:#8397b2}
-.player:not(.rhythm-playing) .stage{height:clamp(300px,calc(100svh - 390px),510px);min-height:0;padding:clamp(10px,1.8vh,18px);overflow:auto;overscroll-behavior:contain}
+.player:not(.rhythm-playing) .stage{height:clamp(300px,calc(100svh - 390px),510px);min-height:0;padding:clamp(10px,1.8vh,18px);overflow:auto;overscroll-behavior:contain;justify-content:flex-start}
 .player:not(.rhythm-playing) .stage:before{pointer-events:none}
 .player:not(.rhythm-playing) .instrument-art{margin-bottom:clamp(7px,1.2vh,12px)}
 .player:not(.rhythm-playing) .flute-diagram{max-height:min(27vh,235px)}
@@ -687,3 +689,8 @@ body{background:radial-gradient(ellipse at 50% -12%,#16345b 0,#0a1a31 42%,#06122
   .player:not(.rhythm-playing) .player-footer{margin-top:7px}
 }
 @media(max-width:390px){.keyboard-feedback{align-items:flex-start;flex-direction:column;gap:3px}.keyboard-feedback-item{width:100%;justify-content:space-between}.player:not(.rhythm-playing) .stage{height:clamp(250px,calc(100dvh - 395px),370px)}}
+.player.rhythm-setup>.player-heading,.player.rhythm-setup>#instrument-switcher,.player.rhythm-setup>#daily-challenge-banner,.player.rhythm-setup>#composer-toolbar,.player.rhythm-setup>#keyboard-feedback,.player.rhythm-setup>#stage,.player.rhythm-setup>.player-footer,.player.rhythm-setup>#first-play-tutorial{display:none!important}
+.player.rhythm-setup>.song-picker{width:min(820px,100%);margin:0 auto}
+.song-picker.preselected-rhythm #song-list{display:none}
+.game-lane.reference-lane{transition:transform .12s ease,background .12s ease,border-color .12s ease,box-shadow .12s ease,color .12s ease}
+.game-lane.reference-lane.playing,.game-lane.reference-lane.rhythm-hit{border-color:#b9d5ff;background:linear-gradient(135deg,#9fc4ff,#c8a9ff);color:#08182d;box-shadow:0 0 0 3px #9fc5ff55,0 0 20px #8db8ffbb;transform:translateY(-2px)}

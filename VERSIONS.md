@@ -19,6 +19,16 @@
 - Reason: connect the existing recorder, notation editor, and rhythm game without replacing their current flows.
 - Tested editor navigation, staff note entry, sheet save, custom-song selection and play, recording conversion, clarinet written/concert pitch labeling, syntax, and diff formatting. Browser audio used the built-in fallback because sample files were unavailable in the local test run.
 
+## 0.3.0 — Correct staff note placement (2026-11-15)
+
+- Unified staff, note, ledger-line, and beat positions around shared SVG geometry and screen-to-SVG coordinate conversion.
+- Removed the 30-unit staff jump caused by adding a note on the top line; the staff now stays fixed through the regular staff range and only expands when ledger space is needed.
+- Clicking a notehead selects it, while clicking its stem or ledger line places a note at that exact staff position.
+- Added a pitch preview before placement and vertical drag editing for existing noteheads.
+- Added asset version tags so browsers request the updated editor styles and script.
+- Tested all nine treble lines/spaces, bass top and bottom lines, treble A5 and bass E2 ledger positions, scroll and phone-width placement, preview visibility, stem clicks, note dragging, JavaScript syntax, and browser console errors. Browser zoom was not separately automated.
+- Reason: stop staff reflow and broad note hit areas from making clicks appear to land on the wrong pitch before adding further notation tools.
+
 ## 0.0.1 — Existing game
 
 - Starting point: six virtual instruments, Free Play, Rhythm Mode, Song Library, and recorded-song storage.

@@ -1,5 +1,14 @@
 # Instrument Testing Versions
 
+## 0.4.0 — Staff placement regression round (2026-11-21)
+
+- Consolidated pointer-to-staff pitch snapping so placement and vertical dragging use the same SVG-coordinate step conversion.
+- Recalculate a dragged note from the pointer-up location before committing, preventing the last pointer position from being lost.
+- Centralized ledger-line step generation and used it for rendering; reduced dense-label collisions by showing pitch labels only on hovered or selected notes while retaining every note's accessible label.
+- Added automated regression tests for all nine treble and bass staff line/space pitches, ledger pitches, transformed SVG coordinates, and drag release placement.
+- Tested with Node's built-in test runner and JavaScript syntax check. Browser interaction testing was not available in this environment.
+- Reason: complete the requested placement and dragging round with repeatable coverage before adding notation features.
+
 ## 0.1.0 — Music sheet editor first round (2026-11-14)
 
 - Added a clickable treble/bass staff with whole, half, quarter, eighth, and sixteenth notes, rests, accidentals, key signatures, and 4/4, 3/4, and 6/8 meters.

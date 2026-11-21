@@ -873,14 +873,24 @@ function sheetStaffGeometry(notes=sheetNotes){
 function sheetStepToY(step,layout=sheetStaffGeometry()){
   return layout.bottom-Number(step)*layout.stepHeight;
 }
+function sheetYToStep(y,layout=sheetStaffGeometry()){
+  return Math.max(-30,Math.min(36,Math.round((layout.bottom-Number(y))/layout.stepHeight)));
+}
+function sheetLedgerSteps(step){
+  const value=Number(step);if(!Number.isFinite(value)||value>=-1&&value<=9)return [];
+  const first=value<0?-2:10,steps=[];
+  for(let ledger=first;value<0?ledger>=value:ledger<=value;ledger+=value<0?-2:2)steps.push(ledger);
+  return steps;
+}
 function sheetBeatToX(beat,layout=sheetStaffGeometry()){
   const measure=Math.floor(beat/layout.measureBeats),beatInMeasure=beat-measure*layout.measureBeats;
   return layout.left+measure*layout.measureWidth+10+beatInMeasure/layout.measureBeats*(layout.measureWidth-20);
 }
 function sheetStaffPoint(event){
   const svg=document.querySelector('#sheet-staff'),matrix=svg?.getScreenCTM();if(!svg||!matrix)return null;
-  const point=svg.createSVGPoint();point.x=event.clientX;point.y=event.clientY;
-  const local=point.matrixTransform(matrix.inverse());return {x:local.x,y:local.y};
+  try{const point=svg.createSVGPoint();point.x=event.clientX;point.y=event.clientY;
+    const local=point.matrixTransform(matrix.inverse());return Number.isFinite(local.x)&&Number.isFinite(local.y)?{x:local.x,y:local.y}:null
+  }catch{return null}
 }
 function sheetNoteHitTarget(target){
   const hit=target?.closest?.('.sheet-notehead,.sheet-note-label,.sheet-rest-glyph,.sheet-rest-block');
@@ -890,7 +900,7 @@ function sheetSnapPoint(event,layout=sheetStaffGeometry()){
   const local=sheetStaffPoint(event);if(!local||local.y<24||local.y>layout.height-12||local.x<layout.left)return null;
   const measure=Math.floor((local.x-layout.left)/layout.measureWidth),xInMeasure=local.x-layout.left-measure*layout.measureWidth,
     beatInMeasure=Math.max(0,Math.min(layout.measureBeats-.25,Math.round(((xInMeasure-10)/(layout.measureWidth-20))*layout.measureBeats*4)/4)),
-    step=Math.max(-30,Math.min(36,Math.round((layout.bottom-local.y)/layout.stepHeight)));
+    step=sheetYToStep(local.y,layout);
   return {x:sheetBeatToX(measure*layout.measureBeats+beatInMeasure,layout),beat:measure*layout.measureBeats+beatInMeasure,step};
 }
 function sheetPreviewLabel(position){
@@ -912,13 +922,15 @@ function sheetHandlePointerMove(event){
   if(sheetDragState){
     const note=sheetNotes.find(item=>item.id===sheetDragState.id);if(!note)return;
     if(Math.abs(local.y-sheetDragState.startY)>3)sheetDragState.moved=true;
-    if(sheetDragState.moved){const layout=sheetStaffGeometry(),step=Math.max(-30,Math.min(36,Math.round((layout.bottom-local.y)/layout.stepHeight)));sheetDragState.nextStep=step;updateSheetPreview({x:sheetBeatToX(note.beat,layout),beat:note.beat,step,excludeId:note.id});return}
+    if(sheetDragState.moved){const layout=sheetStaffGeometry(),step=sheetYToStep(local.y,layout);sheetDragState.nextStep=step;updateSheetPreview({x:sheetBeatToX(note.beat,layout),beat:note.beat,step,excludeId:note.id});return}
   }
   updateSheetPreview(sheetNoteHitTarget(event.target)?null:sheetSnapPoint(event));
 }
 function sheetHandlePointerUp(event){
   if(!sheetDragState)return;
-  const drag=sheetDragState,note=sheetNotes.find(item=>item.id===drag.id);sheetDragState=null;
+  const drag=sheetDragState,note=sheetNotes.find(item=>item.id===drag.id),local=sheetStaffPoint(event);
+  if(note&&local&&Math.abs(local.y-drag.startY)>3){drag.moved=true;drag.nextStep=sheetYToStep(local.y,sheetStaffGeometry())}
+  sheetDragState=null;
   if(note&&drag.moved&&Number.isInteger(drag.nextStep)&&drag.nextStep!==note.step){sheetPushUndo();note.step=drag.nextStep;selectedSheetNoteId=note.id;sheetPreviewClientPoint=null;renderSheetStaff();document.querySelector('#sheet-current-note').textContent='Moved '+sheetResolveNotes().find(item=>item.id===note.id)?.label;updateSheetEditButtons();return}
   if(note&&!drag.moved){sheetPreviewClientPoint=null;selectSheetNote(note.id);return}
   if(sheetNoteHitTarget(event.target)){sheetPreviewClientPoint=null;updateSheetPreview(null);return}
@@ -950,7 +962,7 @@ function renderSheetStaff(){
   resolved.forEach(note=>{
     const x=sheetBeatToX(note.beat,layout),step=note.rest?4:note.step,y=sheetStepToY(step,layout),displayLabel=note.rest?'Rest':sheetInstrument()==='drums'?sheetDrumLabel(sheetDrumPartForMidi(note.midi)):note.label,g=sheetSvgElement('g',{class:'sheet-note'+(note.id===selectedSheetNoteId?' selected':''),'data-sheet-note-id':note.id,tabindex:0,role:'button','aria-label':note.rest?'Select rest, '+sheetDurationLabels[note.durationBeats]+' note value':'Select '+displayLabel+', '+sheetDurationLabels[note.durationBeats]+' note'}),titleElement=sheetSvgElement('title',{},displayLabel+' · '+sheetDurationLabels[note.durationBeats]);
     g.append(titleElement);
-    if(!note.rest&&(step<0||step>8)){const first=step<0?-2:10,last=step;for(let ledger=first;step<0?ledger>=last:ledger<=last;ledger+=step<0?-2:2){if(Math.abs(ledger)%2===0){const ledgerY=sheetStepToY(ledger,layout);g.append(sheetSvgElement('line',{x1:x-14,y1:ledgerY,x2:x+14,y2:ledgerY,class:'sheet-ledger-line'}))}}}
+     if(!note.rest)sheetLedgerSteps(step).forEach(ledger=>{const ledgerY=sheetStepToY(ledger,layout);g.append(sheetSvgElement('line',{x1:x-14,y1:ledgerY,x2:x+14,y2:ledgerY,class:'sheet-ledger-line'}))});
     if(note.rest){
       if(note.durationBeats>=2){g.append(sheetSvgElement('rect',{x:x-8,y:note.durationBeats===4?top+56:top+36,width:16,height:8,rx:1,class:'sheet-rest-block'}))}
       else{const glyph=note.durationBeats===0.25?'𝄿':note.durationBeats===0.5?'𝄾':'𝄽';g.append(sheetSvgElement('text',{x:x-7,y:y+11,class:'sheet-rest-glyph'},glyph))}
@@ -958,7 +970,8 @@ function renderSheetStaff(){
       if(note.accidental&&note.accidental!=='none'){const symbol=note.accidental==='sharp'?'♯':note.accidental==='flat'?'♭':'♮';g.append(sheetSvgElement('text',{x:x-19,y:y+5,class:'sheet-accidental-symbol'},symbol))}
       const hollow=note.durationBeats>=2;g.append(sheetSvgElement('ellipse',{cx:x,cy:y,rx:9,ry:6,transform:'rotate(-18 '+x+' '+y+')',class:'sheet-notehead'+(hollow?' hollow':'')}));
       if(note.durationBeats<4){const stemUp=step<4,stemX=stemUp?x+8:x-8,stemEnd=stemUp?y-36:y+36;g.append(sheetSvgElement('line',{x1:stemX,y1:y+(stemUp?-1:1),x2:stemX,y2:stemEnd,class:'sheet-stem'}));if(note.durationBeats<=0.5){const direction=stemUp?1:-1,flag='M '+stemX+' '+stemEnd+' C '+(stemX+direction*15)+' '+(stemEnd+6*direction)+' '+(stemX+direction*16)+' '+(stemEnd+16*direction)+' '+(stemX+direction*8)+' '+(stemEnd+20*direction);g.append(sheetSvgElement('path',{d:flag,class:'sheet-flag'}));if(note.durationBeats<=0.25){const second='M '+stemX+' '+(stemEnd+8*direction)+' C '+(stemX+direction*14)+' '+(stemEnd+14*direction)+' '+(stemX+direction*14)+' '+(stemEnd+22*direction)+' '+(stemX+direction*7)+' '+(stemEnd+26*direction);g.append(sheetSvgElement('path',{d:second,class:'sheet-flag'}))}}}
-      g.append(sheetSvgElement('text',{x:x-13,y:y+23,class:'sheet-note-label'},displayLabel));
+       const labelWidth=Math.max(24,displayLabel.length*6+8),labelX=x+12,labelY=y-8;
+       g.append(sheetSvgElement('rect',{x:labelX,y:labelY,width:labelWidth,height:15,rx:4,class:'sheet-note-label-bg'}),sheetSvgElement('text',{x:labelX+4,y:y+3,class:'sheet-note-label'},displayLabel));
     }
     g.addEventListener('pointerdown',event=>{if(note.rest||!sheetNoteHitTarget(event.target)||event.pointerType==='mouse'&&event.button!==0)return;const local=sheetStaffPoint(event);if(!local)return;selectedSheetNoteId=note.id;sheetDragState={id:note.id,startY:local.y,nextStep:note.step,moved:false};try{g.setPointerCapture(event.pointerId)}catch{}});
     g.addEventListener('click',event=>{if(sheetNoteHitTarget(event.target)!==g)return;event.stopPropagation();selectSheetNote(note.id)});g.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();selectSheetNote(note.id)}});svg.append(g);

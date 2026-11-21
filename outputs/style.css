@@ -710,3 +710,10 @@ body{background:radial-gradient(ellipse at 50% -12%,#16345b 0,#0a1a31 42%,#06122
 .menu-button-create{border-color:#675d9b!important;background:linear-gradient(120deg,#243964,#393262)!important;color:#eeeaff!important}
 @media(max-width:760px){.sheet-project-fields{grid-template-columns:repeat(2,minmax(0,1fr))}.sheet-playback-bar{grid-template-columns:1fr}.sheet-save-actions{grid-column:1}.sheet-playback-bar output{order:-1}.sheet-note-toolbar{align-items:stretch}.sheet-edit-actions{flex:1 1 100%}.sheet-notation-fields{grid-template-columns:1fr}}
 @media(max-width:480px){.sheet-project-fields{grid-template-columns:1fr}.sheet-edit-actions button,.sheet-transport button,.sheet-save-actions button{flex:1}.sheet-note-toolbar>label{flex:1 1 40%}.sheet-creator-card{padding:12px}.sheet-staff-viewport svg{min-height:205px}}
+
+/* Keep dense beginner note labels readable; titles and aria labels remain on every note. */
+.sheet-note-label,.sheet-note-label-bg{opacity:0;pointer-events:none;transition:opacity .12s ease}
+.sheet-note:hover .sheet-note-label,.sheet-note:hover .sheet-note-label-bg,.sheet-note.selected .sheet-note-label,.sheet-note.selected .sheet-note-label-bg{opacity:1}
+.sheet-note-label{fill:#f4f7ff;font:9px 'DM Mono',monospace}
+.sheet-note-label-bg{fill:#152a48;stroke:#6c86b5;stroke-width:.8}
+.sheet-note-preview .sheet-note-label{opacity:1}

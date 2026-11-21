@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#071427">
   <title>Instrument Testing</title>
-  <link rel="stylesheet" href="style.css?v=0.7.0">
+  <link rel="stylesheet" href="style.css?v=0.8.0">
 </head>
 <body>
   <main class="app-shell">
@@ -47,19 +47,24 @@
           <label for="sheet-title">Song title<input id="sheet-title" type="text" maxlength="48" value="My first song" autocomplete="off"></label>
           <label for="sheet-composer-name">Composer<input id="sheet-composer-name" type="text" maxlength="36" value="" autocomplete="off" placeholder="Your name"></label>
           <label for="sheet-instrument">Instrument<select id="sheet-instrument"><option value="piano">Piano</option><option value="guitar">Guitar</option><option value="drums">Drums</option><option value="violin">Violin</option><option value="flute">Flute</option><option value="clarinet">B-flat Clarinet</option></select></label>
-          <label class="sheet-tempo-field" for="sheet-tempo">Tempo <output id="sheet-tempo-value">100 BPM</output><input id="sheet-tempo" type="range" min="40" max="200" step="1" value="100"></label>
+          <label class="sheet-tempo-field" for="sheet-tempo">Tempo <output id="sheet-tempo-value">100 BPM</output><input id="sheet-tempo" type="range" min="20" max="300" step="1" value="100"></label>
         </div>
         <details class="sheet-advanced-options"><summary>Notation settings</summary><div class="sheet-project-fields sheet-notation-fields">
           <label for="sheet-clef">Clef<select id="sheet-clef"><option value="treble">Treble clef</option><option value="bass">Bass clef</option></select></label>
           <label for="sheet-key-signature">Key signature<select id="sheet-key-signature"><option value="C">C major / A minor</option><option value="G">G major / E minor</option><option value="D">D major / B minor</option><option value="A">A major / F♯ minor</option><option value="E">E major / C♯ minor</option><option value="B">B major / G♯ minor</option><option value="F#">F♯ major / D♯ minor</option><option value="C#">C♯ major / A♯ minor</option><option value="F">F major / D minor</option><option value="Bb">B♭ major / G minor</option><option value="Eb">E♭ major / C minor</option><option value="Ab">A♭ major / F minor</option><option value="Db">D♭ major / B♭ minor</option><option value="Gb">G♭ major / E♭ minor</option><option value="Cb">C♭ major / A♭ minor</option></select></label>
-          <label for="sheet-time-signature">Time signature<select id="sheet-time-signature"><option value="4/4">4/4</option><option value="3/4">3/4</option><option value="6/8">6/8</option></select></label>
+          <label for="sheet-time-signature">Time signature<select id="sheet-time-signature"><option>2/2</option><option>2/4</option><option>3/4</option><option selected>4/4</option><option>5/4</option><option>6/8</option><option>7/8</option><option>9/8</option><option>12/8</option></select></label>
+          <label for="sheet-grid">Snap to grid<select id="sheet-grid"><option value="auto">Auto</option><option value="4">Sixteenth notes</option><option value="8">Thirty-second notes</option><option value="12">Triplet grid</option></select></label>
+          <label for="sheet-zoom">Staff zoom <output id="sheet-zoom-value">100%</output><input id="sheet-zoom" type="range" min="60" max="150" step="5" value="100"></label>
+          <label class="sheet-rest-option" for="sheet-horizontal"><input id="sheet-horizontal" type="checkbox"> Drag to change beat</label>
+          <label class="sheet-rest-option" for="sheet-note-names"><input id="sheet-note-names" type="checkbox" checked> Show pitch labels on selection</label>
         </div></details>
         <div class="sheet-note-toolbar" aria-label="Note editing tools">
           <label for="sheet-duration">Note value<select id="sheet-duration"><option value="4">Whole</option><option value="2">Half</option><option value="1" selected>Quarter</option><option value="0.5">Eighth</option><option value="0.25">Sixteenth</option><option value="0.125">Thirty-second</option></select></label>
           <label for="sheet-dots">Augmentation dots<select id="sheet-dots"><option value="0">None</option><option value="1">Dotted ·</option><option value="2">Double-dotted ··</option></select></label>
           <label for="sheet-accidental">Accidental<select id="sheet-accidental"><option value="none">Key signature</option><option value="sharp">Sharp ♯</option><option value="flat">Flat ♭</option><option value="natural">Natural ♮</option></select></label>
           <label class="sheet-rest-option" for="sheet-place-rest"><input id="sheet-place-rest" type="checkbox"> Place a rest</label>
-          <div class="sheet-edit-actions"><button id="sheet-apply-note" type="button" disabled>Apply to selected</button><button id="sheet-undo" type="button">Undo</button><button id="sheet-redo" type="button">Redo</button><button id="sheet-copy" type="button">Copy</button><button id="sheet-paste" type="button">Paste</button><button id="sheet-delete-note" type="button">Delete</button></div>
+          <label class="sheet-rest-option" for="sheet-eraser"><input id="sheet-eraser" type="checkbox"> Eraser</label>
+          <div class="sheet-edit-actions"><button id="sheet-apply-note" type="button" disabled>Apply to selected</button><button id="sheet-undo" type="button">Undo</button><button id="sheet-redo" type="button">Redo</button><button id="sheet-copy" type="button">Copy</button><button id="sheet-paste" type="button">Paste</button><button id="sheet-delete-note" type="button">Delete selected</button></div>
         </div>
         <details class="sheet-advanced-options"><summary>Advanced notation</summary>
           <div class="sheet-note-toolbar" aria-label="Beams, ties, and slurs">
@@ -71,15 +76,21 @@
             <label for="sheet-dynamic">Dynamic<select id="sheet-dynamic"><option value="">Previous dynamic</option><option>pp</option><option>p</option><option>mp</option><option>mf</option><option>f</option><option>ff</option></select></label>
             <label for="sheet-hairpin">Volume change<select id="sheet-hairpin"><option value="">None</option><option value="crescendo">Crescendo</option><option value="diminuendo">Diminuendo</option></select></label>
             <label for="sheet-note-tempo">Tempo mark (BPM)<input id="sheet-note-tempo" type="number" min="20" max="300" placeholder="Previous tempo"></label>
+            <label for="sheet-voice">Voice<select id="sheet-voice"><option value="1">1 · Upper</option><option value="2">2 · Lower</option></select></label>
+            <label class="sheet-rest-option" for="sheet-chord"><input id="sheet-chord" type="checkbox"> Add to selected note as a chord</label>
             <button id="sheet-apply-expression" type="button" disabled>Apply markings to selected</button>
+            <label class="sheet-rest-option" for="sheet-repeat-start"><input id="sheet-repeat-start" type="checkbox"> Start repeat</label>
+            <label class="sheet-rest-option" for="sheet-repeat-end"><input id="sheet-repeat-end" type="checkbox"> End repeat</label>
+            <label for="sheet-ending">Alternate ending<select id="sheet-ending"><option value="0">None</option><option value="1">First ending</option><option value="2">Second ending</option></select></label>
+            <button id="sheet-apply-measure" type="button" disabled>Apply to selected measure</button>
           </div>
         </details>
-        <p class="sheet-hint">Notes snap to thirty-second-note positions or to the end of a nearby note. Scroll sideways for later measures. Clarinet notes are written pitch and sound a whole step lower.</p>
-        <div class="sheet-staff-viewport"><svg id="sheet-staff" role="img" aria-label="Clickable five-line music staff"></svg></div>
+        <p class="sheet-hint">Click a line or space to add a pitch. Drag a notehead to change pitch. Clarinet sounds a whole step below written pitch.</p>
+        <div class="sheet-staff-viewport" tabindex="0" aria-label="Scrollable score"><svg id="sheet-staff" role="group" aria-label="Clickable five-line music staff"></svg></div>
         <div class="sheet-playback-bar">
           <div class="sheet-transport"><button id="sheet-play" class="rhythm-action" type="button">▶ Play sheet</button><button id="sheet-pause" class="rhythm-action secondary-action" type="button" disabled>Pause</button><button id="sheet-stop" class="rhythm-action secondary-action" type="button" disabled>Stop</button><button id="sheet-restart" class="rhythm-action secondary-action" type="button">Restart</button></div>
           <output id="sheet-current-note" aria-live="polite">Ready · click the staff to add notes</output>
-          <div class="sheet-save-actions"><button id="sheet-save" class="rhythm-action" type="button">Save sheet</button><button id="sheet-new" class="rhythm-action secondary-action" type="button">New sheet</button></div>
+          <div class="sheet-save-actions"><button id="sheet-save" class="rhythm-action" type="button">Save sheet</button><button id="sheet-new" class="rhythm-action secondary-action" type="button">New sheet</button><button id="sheet-import" class="rhythm-action secondary-action" type="button">Import MusicXML</button><input id="sheet-import-file" type="file" accept=".xml,.musicxml,application/xml" hidden><button id="sheet-export" class="rhythm-action secondary-action" type="button">Export MusicXML</button><button id="sheet-print" class="rhythm-action secondary-action" type="button">Print / Save PDF</button></div>
         </div>
         <p id="sheet-status" class="settings-status" aria-live="polite">Sheets are saved on this device.</p>
       </section>
@@ -118,6 +129,7 @@
     <footer class="page-footer"><span>MADE FOR CURIOUS EARS</span><span>✳ &nbsp; SOUND ON FOR THE FULL EXPERIENCE</span></footer>
   </main>
   <script src="sheet-expression.js?v=0.7.0"></script>
-  <script src="script.js?v=0.7.0"></script>
+  <script src="sheet-musicxml.js?v=0.8.0"></script>
+  <script src="script.js?v=0.8.0"></script>
 </body>
 </html>

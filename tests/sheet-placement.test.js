@@ -23,8 +23,8 @@ function extractFunction(name) {
 
 const editorFunctions = [
   'sheetClef', 'sheetStaffGeometry', 'sheetStepToY', 'sheetYToStep',
-  'sheetLedgerSteps', 'sheetBeatToX', 'sheetStaffPoint', 'sheetSnapPoint',
-  'sheetHandlePointerUp',
+  'sheetLedgerSteps', 'sheetBeatToX', 'sheetBeatSystem', 'sheetStaffPoint', 'sheetSnapPoint',
+  'sheetHandlePointerUp', 'sheetDragTarget',
 ].map(extractFunction).join('\n');
 
 const clefInput = { value: 'treble' };
@@ -56,7 +56,7 @@ vm.createContext(sandbox);
 vm.runInContext(editorFunctions, sandbox, { filename: 'outputs/script.js (sheet geometry)' });
 const api = vm.runInContext(`({
   sheetStaffGeometry, sheetStepToY, sheetYToStep, sheetLedgerSteps,
-  sheetBeatToX, sheetSnapPoint, sheetHandlePointerUp,
+  sheetBeatToX, sheetBeatSystem, sheetSnapPoint, sheetHandlePointerUp,
   pitchAtStep: ${source.slice(source.indexOf('function sheetPitchAtStep('), source.indexOf('\nfunction sheetStaffStepForPitch'))}
 })`, sandbox);
 
@@ -133,7 +133,7 @@ test('ledger-line pitches and ledger positions are consistent above and below ea
 
 test('pointer-up commits the final drag pitch in SVG coordinates', () => {
   clefInput.value = 'treble';
-  sandbox.sheetNotes = [{ id: 'dragged', beat: 0, step: 4 }];
+  sandbox.sheetNotes = [{ id: 'dragged', beat: 0, step: 4, durationBeats: 1 }];
   const layout = api.sheetStaffGeometry(sandbox.sheetNotes);
   const startY = api.sheetStepToY(4, layout);
   const targetY = api.sheetStepToY(2, layout);
@@ -142,4 +142,19 @@ test('pointer-up commits the final drag pitch in SVG coordinates', () => {
   sandbox.sheetDragState = { id: 'dragged', startY, nextStep: 4, moved: false };
   api.sheetHandlePointerUp({ clientX: offsetX + (layout.left + 25) * scale, clientY: offsetY + targetY * scale });
   assert.equal(sandbox.sheetNotes[0].step, 2);
+});
+
+test('a resized and zoomed second system snaps the same pitch to the correct measure', () => {
+  clefInput.value = 'bass';
+  sandbox.sheetNotes = [];
+  svg = {...transformedSvg(.75, .75, -325, -88),parentElement:{clientWidth:680}};
+  const layout = api.sheetStaffGeometry();
+  assert.equal(layout.measuresPerSystem, 1);
+  const beat = 4.5;
+  const y = api.sheetStepToY(6,layout)+layout.height*api.sheetBeatSystem(beat,layout);
+  const snapped = api.sheetSnapPoint({clientX:api.sheetBeatToX(beat,layout)*.75-325,clientY:y*.75-88},layout);
+  assert.equal(snapped.beat,beat);
+  assert.equal(snapped.step,6);
+  const pitch=api.pitchAtStep(snapped.step);
+  assert.equal(pitch.letter+pitch.octave,'F3');
 });

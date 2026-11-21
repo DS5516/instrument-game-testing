@@ -1,5 +1,13 @@
 # Instrument Testing Versions
 
+## 0.8.0 — Round 5: score layout, playback, and export (2026-11-21)
+
+- Added staff wrapping, measure numbers, zoom, selectable snap grids, note labels, an eraser, and undo and redo shortcuts. Horizontal moves respect rhythm within each voice. Changing clefs preserves written pitch.
+- Added chord entry, two independent voices, additional meters, repeat barlines, and first and second endings.
+- Added a moving playback cursor and repeat-aware playback. Transport stop and pause clear scheduled events and active voices.
+- Added MusicXML import and export for supported single-part scores, plus a print layout for printing or saving as PDF through the browser. Import creates a new composition, and hitting the local save limit preserves existing projects.
+- Node tests and a simulated editor run cover wrapped placement, clefs, chord and voice input, markup saving, repeat timing, cursor updates, release, and MusicXML interchange. Browser interaction, live audio, and printed PDF output remain unverified.
+
 ## 0.7.0 — Round 4: articulation, dynamics, and tuplets (2026-11-21)
 
 - Added staccato, tenuto, accent, marcato, and fermata symbols and playback effects.

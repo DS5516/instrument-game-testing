@@ -726,3 +726,26 @@ body{background:radial-gradient(ellipse at 50% -12%,#16345b 0,#0a1a31 42%,#06122
 .sheet-tuplet-number,.sheet-tempo-mark{fill:#eaf1ff;font:700 13px Georgia,serif;pointer-events:none}
 .sheet-tuplet-number{text-anchor:middle}
 .sheet-dynamic{fill:#eaf1ff;font:bold italic 19px Georgia,serif;pointer-events:none}
+.sheet-staff-viewport{max-height:min(72vh,750px)}
+.sheet-staff-viewport svg{min-width:0;min-height:0;touch-action:pan-x pan-y}
+.sheet-notehead,.sheet-rest-block,.sheet-rest-glyph{touch-action:none}
+#sheet-staff.erasing .sheet-note{cursor:crosshair}
+.sheet-page-background{fill:#0b1d34}
+.sheet-playhead{stroke:#73c9ff;stroke-width:2;pointer-events:none}
+.sheet-repeat-bar,.sheet-volta{fill:none;stroke:#dde9ff;pointer-events:none}
+.sheet-repeat-dot{fill:#dde9ff;pointer-events:none}
+.sheet-volta{stroke-width:1.4}
+.hide-note-names .sheet-note .sheet-note-label,.hide-note-names .sheet-note .sheet-note-label-bg{opacity:0}
+#sheet-print-preview{display:none}
+@media print{
+  @page{margin:12mm}
+  body:has(#sheet-print-preview)>:not(#sheet-print-preview){display:none!important}
+  #sheet-print-preview{display:block;background:white}
+  #sheet-print-preview svg{display:block;width:100%;height:auto;break-inside:avoid}
+  #sheet-print-preview .sheet-page-background,#sheet-print-preview .sheet-notehead.hollow{fill:white}
+  #sheet-print-preview text,#sheet-print-preview .sheet-notehead:not(.hollow),#sheet-print-preview .sheet-rest-block,#sheet-print-preview .sheet-augmentation-dot,#sheet-print-preview .sheet-repeat-dot{fill:black}
+  #sheet-print-preview line,#sheet-print-preview path,#sheet-print-preview ellipse{stroke:black;filter:none}
+  #sheet-print-preview .sheet-note.selected .sheet-notehead,#sheet-print-preview .sheet-note.playing .sheet-notehead{stroke-width:1.2;transform:none}
+  #sheet-print-preview .sheet-articulation{color:black}
+  #sheet-print-preview .sheet-note-label,#sheet-print-preview .sheet-note-label-bg{display:none}
+}

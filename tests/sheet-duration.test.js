@@ -12,7 +12,7 @@ const context = vm.createContext({});
 const editor = vm.runInContext(source.slice(start, end) + `
   ({sheetNoteValue, sheetReadNoteValue, sheetNoteValueLabel, sheetFlagCount,
     sheetSnapPoint, sheetStaffGeometry, sheetBeatToX, sheetBeamGroups, sheetPlaybackChains, sheetResolveNotes,
-    sheetRenderBeams, sheetRenderLinks, sheetTripletGroups, sheetBuildClock, sheetBuildGains,
+    sheetRenderBeams, sheetRenderLinks, sheetTripletGroups, sheetBuildClock, sheetBuildGains, sheetCanMoveTo,
     setNotes(notes) { sheetNotes = notes; }})
 `, context);
 
@@ -114,6 +114,17 @@ test('a crescendo interpolates gains toward the next explicit dynamic', () => {
   assert.ok(Math.abs(gains.get(1)-.89)<1e-8);
   assert.equal(gains.get(2),1.22);
   assert.equal(gains.get(3),1.22);
+});
+
+test('a horizontal move respects rests, chord durations, and independent voices', () => {
+  const note={id:'moving',voice:1,durationBeats:1,step:0};
+  const other=[{id:'held',beat:1,durationBeats:1,voice:1,step:2},{id:'rest',beat:4,durationBeats:1,voice:1,rest:true}];
+  assert.equal(editor.sheetCanMoveTo(note,.5,0,other),false);
+  assert.equal(editor.sheetCanMoveTo(note,1,2,other),false);
+  assert.equal(editor.sheetCanMoveTo(note,1,0,other),true);
+  assert.equal(editor.sheetCanMoveTo(note,4,0,other),false);
+  assert.equal(editor.sheetCanMoveTo({...note,voice:2},4,0,other),true);
+  assert.equal(editor.sheetCanMoveTo({...note,durationBeats:.5},1,0,other),false);
 });
 
 test('placement snaps to thirty-second positions and off-grid dotted ends', () => {

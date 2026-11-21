@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#071427">
   <title>Instrument Testing</title>
-  <link rel="stylesheet" href="style.css?v=0.8.0">
+  <link rel="stylesheet" href="style.css?v=0.8.2">
 </head>
 <body>
   <main class="app-shell">
@@ -122,7 +122,22 @@
       <div class="player-footer"><span class="sound-dot" aria-hidden="true"></span><span id="audio-status" class="audio-status" data-state="waiting" aria-live="polite">Audio waiting for input</span><span id="sound-caption">Tap a key to play a note</span><span id="note-info" class="note-info" aria-live="off">Choose a control to see its note and fingering.</span><button id="stop-sound" class="stop-sound" type="button" aria-label="Stop all playing sounds">■ Stop sound</button><label class="volume-control" for="volume-slider">VOLUME <input id="volume-slider" type="range" min="0" max="100" value="35" aria-label="Volume"></label></div>
       <div id="first-play-tutorial" class="first-play-tutorial hidden" role="note"><p>Tap a key, string, fret, or drum—or use the labeled keyboard keys—to play. Hold notes where supported; Space stops playback.</p><button id="skip-first-tutorial" type="button">Skip tip</button></div>
       <section id="song-picker" class="song-picker hidden" aria-label="Choose a practice song"><div class="rhythm-heading"><button id="song-back" class="back-button" type="button">← Back</button><div><p id="song-context" class="eyebrow">RHYTHM MODE</p><h2 id="song-picker-title">Choose a song</h2><p id="song-instrument-label" class="song-instrument-label"></p></div></div><div class="rhythm-options"><label class="practice-option tempo-option" for="practice-tempo-picker"><span><strong>Practice tempo</strong><small><output id="practice-tempo-value">100%</output> song speed</small></span><input id="practice-tempo-picker" type="range" min="50" max="150" step="5" value="100"></label><label class="practice-option" for="metronome-picker"><span><strong>Metronome</strong><small>Click on each beat</small></span><input id="metronome-picker" type="checkbox"></label><label class="practice-option" for="rhythm-difficulty"><span><strong>Timing</strong><small>Choose your hit window</small></span><select id="rhythm-difficulty"><option value="easy">Easy · wider timing</option><option value="advanced">Advanced · tighter timing</option></select></label></div><div id="song-list" class="song-list"></div><button id="song-start" class="rhythm-action" type="button" disabled>Start song</button></section>
-      <section id="rhythm-game" class="rhythm-game hidden" aria-label="Rhythm game"><div class="rhythm-topline"><button id="game-back" class="back-button" type="button">← Quit</button><strong id="game-song-title"></strong><span id="game-tempo"></span></div><div class="game-stats"><span>Score <b id="game-score">0</b></span><span>Combo <b id="game-combo">0</b></span><span>Best combo <b id="game-highest">0</b></span><span>Perfect <b id="game-perfect">0</b></span><span>Great <b id="game-great">0</b></span><span>Good <b id="game-good">0</b></span><span>Misses <b id="game-misses">0</b></span><span>Accuracy <b id="game-accuracy">—</b></span><span id="game-feedback" aria-live="polite">Ready</span></div><div class="track-wrap"><div id="countdown-overlay" class="countdown-overlay" aria-live="assertive">3</div><div id="note-track" class="note-track" aria-label="Incoming notes"><div class="hit-line"></div></div></div><div id="game-lanes" class="game-lanes"></div><div class="game-progress"><progress id="song-progress" value="0" max="100"></progress><span id="progress-label">0%</span><span id="game-target" class="game-target"></span></div><div class="game-actions"><button id="game-pause" class="rhythm-action" type="button">Pause</button><button id="game-restart" class="rhythm-action secondary-action" type="button">Restart</button><button id="game-stop" class="rhythm-action secondary-action" type="button">Stop sound</button></div><p id="game-key-hint" class="game-key-hint"></p></section>
+      <section id="rhythm-game" class="rhythm-game hidden" aria-label="Rhythm game">
+        <div class="rhythm-topline"><button id="game-back" class="back-button" type="button">← Quit</button><strong id="game-song-title"></strong><span id="game-tempo"></span></div>
+        <div class="game-stats"><span>Score <b id="game-score">0</b></span><span>Combo <b id="game-combo">0</b></span><span>Best combo <b id="game-highest">0</b></span><span>Perfect <b id="game-perfect">0</b></span><span>Great <b id="game-great">0</b></span><span>Good <b id="game-good">0</b></span><span>Misses <b id="game-misses">0</b></span><span>Accuracy <b id="game-accuracy">—</b></span><span id="game-feedback" aria-live="polite">Ready</span></div>
+        <div class="track-wrap">
+          <div id="countdown-overlay" class="countdown-overlay" aria-live="assertive">3</div>
+          <div class="rhythm-board-viewport">
+            <div id="rhythm-board" class="rhythm-board">
+              <div id="note-track" class="note-track" aria-label="Incoming notes"><div class="hit-line"></div></div>
+              <div id="game-lanes" class="game-lanes" role="group" aria-label="Playable rhythm pads"></div>
+            </div>
+          </div>
+        </div>
+        <div class="game-progress"><progress id="song-progress" value="0" max="100"></progress><span id="progress-label">0%</span><span id="game-target" class="game-target"></span></div>
+        <div class="game-actions"><button id="game-pause" class="rhythm-action" type="button">Pause</button><button id="game-restart" class="rhythm-action secondary-action" type="button">Restart</button><button id="game-stop" class="rhythm-action secondary-action" type="button">Stop sound</button></div>
+        <p id="game-key-hint" class="game-key-hint"></p>
+      </section>
       <section id="results-panel" class="results-panel hidden" aria-label="Song results"><div class="results-heading"><p class="eyebrow">PERFORMANCE SUMMARY</p><h2 id="results-title">Song complete</h2><p id="results-stars" class="results-stars" aria-label="Stars earned">☆☆☆</p></div><div id="results-stats" class="results-stats"></div><p id="results-reward" class="results-reward"></p><div class="results-actions"><button id="results-replay" class="rhythm-action" type="button">Play again</button><button id="results-choose-song" class="rhythm-action secondary-action" type="button">Choose another song</button></div></section>
     </section>
     <div id="achievement-toast" class="achievement-toast hidden" role="status" aria-live="polite"></div>
@@ -130,6 +145,6 @@
   </main>
   <script src="sheet-expression.js?v=0.7.0"></script>
   <script src="sheet-musicxml.js?v=0.8.0"></script>
-  <script src="script.js?v=0.8.0"></script>
+  <script src="script.js?v=0.8.2"></script>
 </body>
 </html>

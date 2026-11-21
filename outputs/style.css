@@ -692,8 +692,43 @@ body{background:radial-gradient(ellipse at 50% -12%,#16345b 0,#0a1a31 42%,#06122
 .player.rhythm-setup>.player-heading,.player.rhythm-setup>#instrument-switcher,.player.rhythm-setup>#daily-challenge-banner,.player.rhythm-setup>#composer-toolbar,.player.rhythm-setup>#keyboard-feedback,.player.rhythm-setup>#stage,.player.rhythm-setup>.player-footer,.player.rhythm-setup>#first-play-tutorial{display:none!important}
 .player.rhythm-setup>.song-picker{width:min(820px,100%);margin:0 auto}
 .song-picker.preselected-rhythm #song-list{display:none}
-.game-lane.reference-lane{transition:transform .12s ease,background .12s ease,border-color .12s ease,box-shadow .12s ease,color .12s ease}
-.game-lane.reference-lane.playing,.game-lane.reference-lane.rhythm-hit{border-color:#b9d5ff;background:linear-gradient(135deg,#9fc4ff,#c8a9ff);color:#08182d;box-shadow:0 0 0 3px #9fc5ff55,0 0 20px #8db8ffbb;transform:translateY(-2px)}
+.rhythm-game .track-wrap{--rhythm-track-height:286px;margin:12px auto 7px}
+.rhythm-game .countdown-overlay{height:var(--rhythm-track-height);border-radius:10px}
+.rhythm-board-viewport{overflow-x:auto;overscroll-behavior-x:contain;scrollbar-color:#4b6892 #0a192a}
+.rhythm-board{min-width:calc(var(--lane-count,1)*var(--lane-size,36px))}
+.rhythm-board .note-track{width:100%;height:var(--rhythm-track-height);margin:0}
+.rhythm-board .game-lanes{width:100%;margin:5px 0 2px;gap:0}
+.rhythm-game .game-lane{
+  display:flex;min-width:0;min-height:58px;flex-direction:column;justify-content:center;align-items:center;
+  gap:4px;margin:0 2px;padding:4px 1px;line-height:1.1;
+  transition:background .12s ease,border-color .12s ease,box-shadow .12s ease,color .12s ease;
+}
+.rhythm-key-label{
+  display:grid;place-items:center;min-width:24px;min-height:24px;padding:2px 4px;
+  border:1px solid #5579a9;border-radius:5px;background:#1f3d61;color:#f1f6ff;
+  font:800 clamp(14px,2.6vw,19px)/1 'DM Mono',monospace;white-space:nowrap;
+}
+.rhythm-pad-note{max-width:100%;padding:0 1px;overflow-wrap:anywhere}
+.rhythm-game .game-lane.rhythm-ready{border-color:#80b7ff;background:#204671;box-shadow:inset 0 0 0 1px #80b7ff}
+.game-lane.rhythm-ready .rhythm-key-label{border-color:#9cc9ff;background:#315e94}
+.rhythm-game .game-lane:is(.playing,.rhythm-key-held,.rhythm-pressed){
+  border-color:#e1d3ff;background:#bbadfc;color:#151735;box-shadow:inset 0 0 0 1px #e9dcff;
+}
+.rhythm-game .game-lane.rhythm-hit{
+  border-color:#baffd9;background:#9affca;color:#082e22;box-shadow:inset 0 0 0 2px #dbffe9;
+}
+.game-lane:is(.playing,.rhythm-key-held,.rhythm-pressed,.rhythm-hit) .rhythm-key-label{
+  border-color:currentColor;background:#ffffff55;color:inherit;
+}
+.game-lane:focus-visible{outline:2px solid #e0dbff;outline-offset:-3px}
+.game-lane:disabled{opacity:.65;cursor:default}
+.rhythm-board .falling-note{
+  display:grid;place-items:center;min-width:28px;height:22px;padding:0 2px;color:#0a2141;
+  font:800 12px/1 'DM Mono',monospace;white-space:nowrap;
+}
+.rhythm-board .falling-note.near-hit{background:#d2e4ff;box-shadow:0 0 8px #a4cfff}
+@media(max-width:650px){.rhythm-game .track-wrap{--rhythm-track-height:245px}}
+@media(prefers-reduced-motion:reduce){.rhythm-game .game-lane{transition:none}}
 
 /* First sheet-editor round: notation canvas, tools, transport, and local projects. */
 .sheet-creator-card{padding:clamp(16px,2.6vw,25px);border:1px solid #304a70;border-radius:18px;background:radial-gradient(circle at 95% 0%,#40377944,transparent 38%),linear-gradient(145deg,#102640,#091a2f);box-shadow:0 18px 48px #02091255;color:#eaf2ff}
@@ -718,6 +753,7 @@ body{background:radial-gradient(ellipse at 50% -12%,#16345b 0,#0a1a31 42%,#06122
 .sheet-note-label-bg{fill:#152a48;stroke:#6c86b5;stroke-width:.8}
 .sheet-note-preview .sheet-note-label{opacity:1}
 .sheet-augmentation-dot{fill:#eaf1ff;pointer-events:none}
+.sheet-time-symbol{font:700 44px 'Times New Roman',serif;font-variant-numeric:lining-nums tabular-nums;pointer-events:none}
 .sheet-beam,.sheet-tie,.sheet-slur{fill:none;stroke:#eaf1ff;pointer-events:none}
 .sheet-beam{stroke-width:5;stroke-linecap:square}
 .sheet-tie,.sheet-slur{stroke-width:1.8;stroke-linecap:round}

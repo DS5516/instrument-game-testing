@@ -266,6 +266,29 @@ test('clef changes and undo/redo preserve the written pitch', () => {
   assert.equal(run('sheetResolveNotes()[0].midi'), 60);
 });
 
+test('time signatures are centered in the staff halves and stay before the first barline', () => {
+  const { input, systems, viewport } = createEditor();
+  viewport.clientWidth = 600;
+  input('key-signature', 'C#').fire('input');
+
+  for (const meter of ['2/2', '2/4', '3/4', '4/4', '5/4', '6/8', '7/8', '9/8', '12/8', '12/16']) {
+    input('time-signature', meter).fire('input');
+    for (const system of systems()) {
+      const lines = system.findAll(element => element.classes.has('sheet-staff-line')).map(line => Number(line.attrs.y1));
+      const digits = system.findAll(element => element.classes.has('sheet-time-symbol'));
+      assert.deepEqual(digits.map(digit => digit.textContent), meter.split('/'));
+      assert.deepEqual(digits.map(digit => Number(digit.attrs.y)), [lines[1], lines[3]]);
+      assert.equal(digits[0].attrs.x, digits[1].attrs.x);
+      const firstBarline = system.find(element => element.classes.has('sheet-bar-line'));
+      assert.ok(Number(digits[0].attrs.x) + 22 < Number(firstBarline.attrs.x1));
+      for (const digit of digits) {
+        assert.equal(digit.attrs['dominant-baseline'], 'central');
+        if (digit.textContent.length > 1) assert.equal(digit.attrs.textLength, '38');
+      }
+    }
+  }
+});
+
 test('pausing and stopping release the current voice and cancel later notes', async () => {
   const editor = createEditor();
   editor.pointer(0, 0);

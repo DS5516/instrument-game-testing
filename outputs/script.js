@@ -188,7 +188,16 @@ function releaseControl(button,immediate=false,force=false){
   if(held.release&&held.voice){if(Array.isArray(held.voice))held.voice.forEach(voice=>stopVoice(voice,immediate));else stopVoice(held.voice,immediate)}
 }
 function wirePlay(button,callback,{release=false,minHoldMs=0}={}){
-  const press=event=>{if(event)event.preventDefault();if(controlHeld.has(button))return;const voice=callback(event);controlHeld.set(button,{voice,release,minHoldMs,startedAt:performance.now(),releaseRequested:false,releaseTimer:0});activeControls.add(button);button.classList.add('playing');if(!release&&voice?.source)voice.source.addEventListener('ended',()=>releaseControl(button),{once:true});};
+  const press=event=>{
+    if(event)event.preventDefault();
+    if(controlHeld.has(button))return;
+    const voice=callback(event);
+    const held={voice,release,minHoldMs,startedAt:performance.now(),releaseRequested:false,releaseTimer:0};
+    controlHeld.set(button,held);activeControls.add(button);button.classList.add('playing');
+    if(!release&&voice?.source)voice.source.addEventListener('ended',()=>{
+      if(controlHeld.get(button)===held)releaseControl(button);
+    },{once:true});
+  };
   button.addEventListener('pointerdown',event=>{press(event);try{button.setPointerCapture(event.pointerId)}catch{}});
   button.addEventListener('pointerup',()=>releaseControl(button));button.addEventListener('pointercancel',()=>releaseControl(button));button.addEventListener('lostpointercapture',()=>releaseControl(button));
   button.addEventListener('keydown',event=>{if((event.key==='Enter'||event.key===' ')&&!event.repeat)press(event)});
@@ -225,7 +234,7 @@ function refreshKeyboardFeedback(){const keys=document.querySelector('#keys-pres
 function rememberFeedbackVoice(voice,instrument,midi,labelOverride=''){if(!voice)return voice;voice.feedbackLabel=labelOverride||(instrument==='clarinet'?`Written ${pitchName(midi+2)} · concert ${pitchName(midi)}`:pitchName(midi));feedbackVoices.add(voice);refreshKeyboardFeedback();return voice}
 function forgetFeedbackVoice(voice){if(feedbackVoices.delete(voice))refreshKeyboardFeedback()}
 function clearKeyboardFeedback(){keyboardFeedbackKeys.clear();refreshKeyboardFeedback()}
-function rememberMappedKeyDown(event){if(player.classList.contains('hidden')||isTypingTarget(event.target)||event.repeat||event.ctrlKey||event.altKey||event.metaKey)return;const instrument=player.dataset.instrument,label=keyboardDisplayLabel(event);if(!label||!isMappedKeyboardInput(instrument,event)||keyboardFeedbackKeys.has(event.code))return;keyboardFeedbackKeys.set(event.code,label);refreshKeyboardFeedback()}
+function rememberMappedKeyDown(event){if(rhythmState||player.classList.contains('hidden')||isTypingTarget(event.target)||event.repeat||event.ctrlKey||event.altKey||event.metaKey)return;const instrument=player.dataset.instrument,label=keyboardDisplayLabel(event);if(!label||!isMappedKeyboardInput(instrument,event)||keyboardFeedbackKeys.has(event.code))return;keyboardFeedbackKeys.set(event.code,label);refreshKeyboardFeedback()}
 function forgetMappedKeyUp(event){if(keyboardFeedbackKeys.delete(event.code))refreshKeyboardFeedback()}
 function playFromComputerKey(event){
   if(player.classList.contains('hidden')||player.dataset.instrument!=='piano'||isTypingTarget(event.target)||event.repeat||event.ctrlKey||event.altKey||event.metaKey)return;
@@ -741,19 +750,25 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden){if(rhythmS
 window.addEventListener('pagehide',()=>{stopRhythmGame('Stopped');stopPlayback()});
 document.addEventListener('keydown',rememberMappedKeyDown,true);
 document.addEventListener('keyup',forgetMappedKeyUp,true);
-document.addEventListener('keydown',playFromComputerKey);
-document.addEventListener('keydown',event=>clarinetKeyboardKeydown(event));
-document.addEventListener('keyup',event=>clarinetKeyboardKeyup(event));
-document.addEventListener('keydown',event=>fluteKeyboardKeydown(event));
-document.addEventListener('keyup',event=>fluteKeyboardKeyup(event));
-document.addEventListener('keydown',event=>guitarKeyboardKeydown(event));
-document.addEventListener('keyup',event=>guitarKeyboardKeyup(event));
-document.addEventListener('keydown',event=>drumKeyboardKeydown(event));
-document.addEventListener('keyup',event=>drumKeyboardKeyup(event));
-document.addEventListener('keydown',event=>violinKeyboardKeydown(event));
-document.addEventListener('keyup',event=>violinKeyboardKeyup(event));
-document.addEventListener('keyup',releasePianoComputerKey);
-document.addEventListener('keydown',stopActiveSoundsKey);
+document.addEventListener('keydown',event=>{
+  if(rhythmState){rhythmInputKey(event);return}
+  playFromComputerKey(event);
+  clarinetKeyboardKeydown(event);
+  fluteKeyboardKeydown(event);
+  guitarKeyboardKeydown(event);
+  drumKeyboardKeydown(event);
+  violinKeyboardKeydown(event);
+  stopActiveSoundsKey(event);
+});
+document.addEventListener('keyup',event=>{
+  if(rhythmState){releaseRhythmKey(event);return}
+  clarinetKeyboardKeyup(event);
+  fluteKeyboardKeyup(event);
+  guitarKeyboardKeyup(event);
+  drumKeyboardKeyup(event);
+  violinKeyboardKeyup(event);
+  releasePianoComputerKey(event);
+});
 window.addEventListener('blur',()=>{if(player.dataset.instrument==='clarinet'||player.dataset.instrument==='flute')clearWindControls();releaseClarinetKeyboard();releaseFluteKeyboard();if(rhythmState)setRhythmPaused(true);for(const control of [...activeControls])releaseControl(control);for(const voice of heldPianoKeys.values())if(voice)stopVoice(voice);heldPianoKeys.clear();clearInstrumentKeyboard();clearKeyboardFeedback()});
 
 // Original rhythm-game patterns. Notes are fixed lane numbers, never randomized.
@@ -1291,8 +1306,15 @@ function sheetRenderSystem(svg,layout,allNotes,row,marks){
   const clefText=clef==='bass'?'𝄢':'𝄞';svg.append(sheetSvgElement('text',{x:23,y:top+74,class:'sheet-clef-glyph'},clefText));
   const keyCount=sheetKeySignatureCounts[document.querySelector('#sheet-key-signature').value]||0;
   if(keyCount){const list=clef==='bass'?(keyCount>0?sheetBassSharpOrder:sheetBassFlatOrder):(keyCount>0?sheetSharpOrder:sheetFlatOrder);list.slice(0,Math.abs(keyCount)).forEach((entry,index)=>{const step=sheetStaffStepForPitch(entry[0],entry[1],clef),y=sheetStepToY(step,layout);svg.append(sheetSvgElement('text',{x:70+index*13,y:y+5,class:'sheet-key-symbol'},keyCount>0?'♯':'♭'))})}
-  const signatureX=70+Math.abs(keyCount)*13+8,signature=sheetTimeSignature().split('/');
-  svg.append(sheetSvgElement('text',{x:signatureX,y:top+29,class:'sheet-time-symbol'},signature[0]));svg.append(sheetSvgElement('text',{x:signatureX,y:bottom-1,class:'sheet-time-symbol'},signature[1]));
+  const signature=sheetTimeSignature().split('/');
+  const hasTwoDigits=signature.some(number=>number.length>1);
+  const signatureX=Math.min(left-25,70+Math.abs(keyCount)*13+(hasTwoDigits?24:15));
+  for(const [index,number] of signature.entries()){
+    const y=sheetStepToY(index===0?6:2,layout);
+    const attributes={x:signatureX,y,'text-anchor':'middle','dominant-baseline':'central',class:'sheet-time-symbol'};
+    if(number.length>1)Object.assign(attributes,{textLength:38,lengthAdjust:'spacingAndGlyphs'});
+    svg.append(sheetSvgElement('text',attributes,number));
+  }
   for(let measure=0;measure<=measuresPerSystem;measure++){
     const x=left+measure*measureWidth;svg.append(sheetSvgElement('line',{x1:x,y1:top,x2:x,y2:bottom,class:'sheet-bar-line'}));
     if(measure>=measuresPerSystem)continue;
@@ -1928,7 +1950,7 @@ function buildSongPicker(){
   if(appFlow==='level'&&selectedLevelNumber){const level=levelCatalog[selectedLevelNumber-1],base=musicLibrary.find(song=>song.id===level.song);songContext.textContent=`LEVEL ${selectedLevelNumber} · TARGET ${level.target.toLocaleString()}`;title.textContent=`${base.name} · ${level.difficulty}`;selectedSong={...base,bpm:level.bpm,level:selectedLevelNumber,target:level.target};}
   else if(appFlow==='rhythm-picked'&&selectedRhythmSongId){selectedSong=rhythmSongForId(selectedRhythmSongId);songContext.textContent='RHYTHM MODE';title.textContent=selectedSong?.name||'Choose a song'}
   else{songContext.textContent='RHYTHM MODE';title.textContent='Choose a song';selectedSong=rhythmSongForId(previousSongId)}
-  label.textContent=`Playing ${info[instrument]?.name||'instrument'}${instrument==='clarinet'?' · use combined clarinet fingering keys':''}`;
+  label.textContent=`Playing ${info[instrument]?.name||'instrument'} · follow the letter on each pad`;
   const songs=(appFlow==='level'&&selectedLevelNumber)||appFlow==='rhythm-picked'?[selectedSong]:availableRhythmSongs();
   songs.forEach(song=>{if(!song)return;const isSelected=selectedSong?.id===song.id;const card=document.createElement('button');card.type='button';card.className=`song-card${isSelected?' selected':''}`;const name=document.createElement('strong'),meta=document.createElement('span'),description=document.createElement('span'),record=document.createElement('span');name.textContent=song.name;meta.textContent=`${song.bpm} BPM · ${song.difficulty} · ${niceLength(song)}`;description.textContent=song.description;const key=`${instrument}:${song.id}`;record.textContent=`Best ${Number(playerProgress.bestScores[key]||0).toLocaleString()} · ${'★'.repeat(playerProgress.songStars[song.id]||0)}${'☆'.repeat(3-(playerProgress.songStars[song.id]||0))}`;card.append(name,meta,description,record);card.addEventListener('click',()=>{selectedSong=song;list.querySelectorAll('.song-card').forEach(item=>item.classList.toggle('selected',item===card));start.disabled=false});list.append(card)});
   if(selectedSong)start.disabled=false;
@@ -1949,21 +1971,164 @@ const rhythmWindowsFor=difficulty=>difficulty==='advanced'?{perfect:35,great:68,
 function updateRhythmStats(){
   if(!rhythmState)return;const state=rhythmState;document.querySelector('#game-score').textContent=String(state.score);document.querySelector('#game-combo').textContent=String(state.combo);document.querySelector('#game-highest').textContent=String(state.highestCombo);document.querySelector('#game-perfect').textContent=String(state.perfect);document.querySelector('#game-great').textContent=String(state.great);document.querySelector('#game-good').textContent=String(state.good);document.querySelector('#game-misses').textContent=String(state.misses);document.querySelector('#game-accuracy').textContent=state.judged?`${Math.round(state.hits/state.judged*100)}%`:'—';
 }
+function rhythmShortcut(key,shift=false){
+  return {key,shift,id:shift?'Shift+'+key:key,label:shift?'⇧ '+key:key};
+}
+function rhythmLaneShortcuts(instrument,lanes){
+  const shortcuts=Array(lanes.length).fill(null);
+  const used=new Set();
+  const assign=(index,shortcut)=>{
+    if(index<0||shortcuts[index]||used.has(shortcut.id))return;
+    shortcuts[index]=shortcut;
+    used.add(shortcut.id);
+  };
+
+  if(instrument==='drums'){
+    const keysByPart=new Map(Object.entries(drumKeyboardMap).map(([code,part])=>[part,code==='Semicolon'?';':code.slice(3)]));
+    lanes.forEach((lane,index)=>{
+      const key=keysByPart.get(lane.part);
+      if(key)assign(index,rhythmShortcut(key));
+    });
+  }else{
+    const concertC=instrument==='clarinet'?58:instrument==='flute'?72:60;
+    const steps=[0,2,4,5,7,9,11];
+    for(const [offset,key] of [...'CDEFGAB'].entries()){
+      const midi=concertC+steps[offset];
+      const exact=lanes.indexOf(midi);
+      const index=exact>=0?exact:lanes.findIndex(lane=>(lane-midi)%12===0);
+      assign(index,rhythmShortcut(key));
+    }
+  }
+
+  const letters=[...'ASDFGHJKLQWERTYUIOPZXCVBNM'];
+  const fallback=[
+    ...letters.map(key=>rhythmShortcut(key)),
+    ...letters.map(key=>rhythmShortcut(key,true)),
+    ...[...'1234567890;,.[]/=-'].map(key=>rhythmShortcut(key)),
+  ].filter(shortcut=>!used.has(shortcut.id));
+  for(let index=0;index<shortcuts.length;index++){
+    if(!shortcuts[index])shortcuts[index]=fallback.shift()??null;
+  }
+  return shortcuts;
+}
+function flashRhythmPad(state,index,className,duration){
+  const pad=state.pads[index];
+  if(!pad)return;
+  const id=className+':'+index;
+  clearTimeout(state.padTimers.get(id));
+  pad.classList.add(className);
+  const timer=setTimeout(()=>{
+    if(state.padTimers.get(id)!==timer)return;
+    state.padTimers.delete(id);
+    pad.classList.remove(className);
+  },duration);
+  state.padTimers.set(id,timer);
+}
+function clearRhythmPadState(state){
+  state.heldKeys.clear();
+  for(const timer of state.padTimers.values())clearTimeout(timer);
+  state.padTimers.clear();
+  for(const pad of state.pads){
+    pad.classList.remove('rhythm-ready','rhythm-pressed','rhythm-key-held','rhythm-hit');
+    pad.disabled=true;
+  }
+}
+function playRhythmLane(state,index){
+  if(rhythmState!==state||state.pausedAt!==null)return null;
+  const lane=state.lanes[index];
+  flashRhythmPad(state,index,'rhythm-pressed',145);
+  void ensureAudioReady();
+  return state.instrument==='drums'?playDrum(lane.part)
+    :playInstrumentNote(state.instrument,lane,.24,'Rhythm lane');
+}
+function buildRhythmPads(state,laneBox){
+  const {instrument,lanes,shortcuts}=state;
+  laneBox.replaceChildren();
+  state.pads=lanes.map((lane,index)=>{
+    const shortcut=shortcuts[index];
+    const note=instrument==='drums'?lane.label:pitchName(lane+(instrument==='clarinet'?2:0));
+    const detail=instrument==='clarinet'?`written ${note}, concert ${pitchName(lane)}`:note;
+    const button=document.createElement('button');
+    button.type='button';
+    button.className='game-lane';
+    const key=document.createElement('kbd');
+    key.className='rhythm-key-label';
+    key.textContent=shortcut?.label||'Tap';
+    const label=document.createElement('span');
+    label.className='rhythm-pad-note';
+    label.textContent=note;
+    button.append(key,label);
+    button.setAttribute('aria-label',shortcut?`Play ${detail}, keyboard ${shortcut.id}`:`Play ${detail}`);
+    if(shortcut)button.setAttribute('aria-keyshortcuts',shortcut.id);
+    button.title=shortcut?`${detail} · ${shortcut.id}`:detail;
+    wirePlay(button,()=>[...state.heldKeys.values()].includes(index)?null:playRhythmLane(state,index));
+    laneBox.append(button);
+    return button;
+  });
+}
 function rhythmInputKey(event){
-  const state=rhythmState;if(!state||state.pausedAt!==null||event.type!=='keydown'||event.repeat||event.ctrlKey||event.altKey||event.metaKey||event.code!=='Space'||isTypingTarget(event.target))return;if(event.target instanceof Element&&event.target.closest('button'))return;event.preventDefault();toggleRhythmPause();
+  const state=rhythmState;
+  if(!state||event.defaultPrevented||event.ctrlKey||event.altKey||event.metaKey||isTypingTarget(event.target))return;
+  if(event.code==='Space'){
+    if(event.target instanceof Element&&event.target.closest('button'))return;
+    event.preventDefault();
+    if(!event.repeat)toggleRhythmPause();
+    return;
+  }
+  const key=event.key.toUpperCase();
+  const shifted=event.shiftKey&&/^[A-Z]$/.test(key);
+  const shortcutId=shifted?'Shift+'+key:key;
+  const index=state.shortcutToLane.get(shortcutId);
+  if(index===undefined)return;
+  event.preventDefault();
+  if(event.repeat||state.pausedAt!==null||state.heldKeys.has(event.code))return;
+  const pad=state.pads[index];
+  state.heldKeys.set(event.code,index);
+  pad.classList.add('rhythm-key-held');
+  if(!controlHeld.has(pad))playRhythmLane(state,index);
+}
+function releaseRhythmKey(event){
+  const state=rhythmState;
+  const index=state?.heldKeys.get(event.code);
+  if(index===undefined)return;
+  state.heldKeys.delete(event.code);
+  state.pads[index]?.classList.remove('rhythm-key-held');
 }
 function startRhythmGame(){
   if(!selectedSong){document.querySelector('#game-feedback').textContent='Choose a song first';return}stopRhythmGame('');stopPlayback();player.classList.remove('rhythm-setup');const instrument=player.dataset.instrument;if(!instrument){document.querySelector('#game-feedback').textContent='Choose an instrument first';return}const song=selectedSong,startButton=document.querySelector('#song-start');startButton.disabled=true;startButton.textContent='Starting…';document.querySelector('#sound-caption').textContent='Starting audio…';void loadInstrument(instrument).catch(error=>{console.warn('Instrument samples failed; built-in tones remain available',error);document.querySelector('#sound-caption').textContent=`Built-in ${instrument} sound active`});void ensureAudioReady().then(audioReady=>{if(!audioReady)setAudioStatus('error','Audio unavailable · check browser audio permissions')});const tempo=Math.max(50,Math.min(150,Number(playerProgress.settings.practiceTempo)||100)),effectiveBpm=song.bpm*tempo/100,lanes=lanePitches(instrument,song),events=[];let ordinal=0;
   if(song.sheetNotes){const usedBeats=new Set();song.sheetNotes.filter(note=>!note.rest).forEach((note,index)=>{const beat=Math.max(0,Number(note.beat)||0);if((monophonicInstruments.has(instrument)||instrument==='drums')&&usedBeats.has(beat))return;usedBeats.add(beat);const target=instrument==='drums'?rhythmSheetDrumPart(song,note,index):rhythmSheetMidi(song,note),lane=instrument==='drums'?lanes.findIndex(item=>item.part===target):lanes.indexOf(target);if(lane>=0)events.push({id:ordinal++,lane,beat,judged:false,el:null})})}
   else{const sequence=instrument==='drums'?drumSongCharts[song.id]:song.pattern;sequence.forEach((value,index)=>{if(value===null)return;const degrees=Array.isArray(value)?value:[value];(monophonicInstruments.has(instrument)||instrument==='drums'?degrees.slice(0,1):degrees).forEach(degree=>events.push({id:ordinal++,lane:instrument==='drums'?degree:((degree%lanes.length)+lanes.length)%lanes.length,beat:index*song.step,judged:false,el:null}))})}
   const totalBeats=rhythmSongTotalBeats(song),backingEvents=[];if(!song.sheetNotes&&instrument==='drums'){for(let beat=0;beat<totalBeats;beat++)backingEvents.push({beat,parts:beat%4===0?['hat','bass']:beat%4===2?['hat','snare']:['hat'],played:false})}else if(!song.sheetNotes&&instrument!=='drums')for(let beat=0;beat<totalBeats;beat+=4)backingEvents.push({beat,root:song.chords[Math.floor(beat/4)%song.chords.length],played:false});
-  const difficulty=playerProgress.settings.rhythmDifficulty==='advanced'?'advanced':'easy',hitWindows=rhythmWindowsFor(difficulty),startAt=performance.now()+3100;rhythmState={instrument,lanes,events,backingEvents,totalBeats,startAt,leadInMs:900,pausedAt:null,score:0,combo:0,highestCombo:0,perfect:0,great:0,good:0,hits:0,misses:0,judged:0,bpm:effectiveBpm,stepBeats:song.sheetNotes?.length ? .25 : song.step,difficulty,hitWindows,metronomeEnabled:!!playerProgress.settings.metronomeEnabled,metronomeBeat:-1};document.querySelector('#game-great').textContent='0';
+  const difficulty=playerProgress.settings.rhythmDifficulty==='advanced'?'advanced':'easy',hitWindows=rhythmWindowsFor(difficulty),startAt=performance.now()+3100;
+  const shortcuts=rhythmLaneShortcuts(instrument,lanes);
+  const shortcutToLane=new Map();
+  shortcuts.forEach((shortcut,index)=>{if(shortcut)shortcutToLane.set(shortcut.id,index)});
+  rhythmState={instrument,lanes,events,backingEvents,totalBeats,startAt,leadInMs:900,pausedAt:null,score:0,combo:0,highestCombo:0,perfect:0,great:0,good:0,hits:0,misses:0,judged:0,bpm:effectiveBpm,stepBeats:song.sheetNotes?.length ? .25 : song.step,difficulty,hitWindows,metronomeEnabled:!!playerProgress.settings.metronomeEnabled,metronomeBeat:-1,
+    shortcuts,shortcutToLane,pads:[],heldKeys:new Map(),padTimers:new Map()};
+  document.querySelector('#game-great').textContent='0';
   document.querySelector('#game-song-title').textContent=song.name;document.querySelector('#game-tempo').textContent=`${Math.round(effectiveBpm)} BPM${tempo!==100?` · ${tempo}% practice tempo`:''}${rhythmState.metronomeEnabled?' · metronome on':''} · ${song.difficulty}`;document.querySelector('#game-score').textContent='0';document.querySelector('#game-combo').textContent='0';document.querySelector('#game-highest').textContent='0';document.querySelector('#game-perfect').textContent='0';document.querySelector('#game-good').textContent='0';document.querySelector('#game-misses').textContent='0';document.querySelector('#game-accuracy').textContent='—';document.querySelector('#game-feedback').textContent='Get ready';document.querySelector('#game-target').textContent=song.level?`Target ${song.target.toLocaleString()}`:'';document.querySelector('#game-pause').textContent='Pause';document.querySelector('#song-progress').value=0;document.querySelector('#progress-label').textContent='0%';document.querySelector('#countdown-overlay').classList.remove('hidden');
-  const track=document.querySelector('#note-track'),laneBox=document.querySelector('#game-lanes');track.style.setProperty('--lanes',lanes.length);laneBox.style.setProperty('--lanes',lanes.length);track.querySelectorAll('.falling-note').forEach(el=>el.remove());laneBox.replaceChildren();
-  lanes.forEach((lane,index)=>{const button=document.createElement('button');button.type='button';button.className=`game-lane${instrument==='clarinet'?' reference-lane':''}`;button.textContent=instrument==='drums'?lane.label:instrument==='clarinet'?pitchName(lane+2):pitchName(lane);button.setAttribute('aria-label',instrument==='clarinet'?`Play clarinet written ${pitchName(lane+2)}, concert ${pitchName(lane)}`:instrument==='drums'?`Play ${lane.label}`:`Play ${pitchName(lane)}`);if(instrument==='clarinet')button.title=`Written ${pitchName(lane+2)} · concert ${pitchName(lane)}`;wirePlay(button,()=>instrument==='drums'?playDrum(lane.part):playInstrumentNote(instrument,lane,.24,'Rhythm lane'));laneBox.append(button)});
-  const keyboardHint={piano:'Piano: use the labeled computer keys or click/tap a lane.',guitar:'Guitar: A S D F G H play strings low to high at the selected fret; click/tap a lane.',drums:'Drums: A S D F G H J K L ; play the labeled drum parts.',violin:'Violin: Q W E R choose strings; hold 1–4 with a string key for finger positions.',flute:'Flute: C–B play notes; W changes octave; click/tap a lane.',clarinet:'Clarinet: use the physical fingering or C–B keys; you can also click/tap the C–B lanes.'};document.querySelector('#game-key-hint').textContent=`${keyboardHint[instrument]} Space pauses · ${difficulty==='easy'?'Easy timing window':'Advanced timing window'}`;
+  const track=document.querySelector('#note-track'),laneBox=document.querySelector('#game-lanes');
+  const board=document.querySelector('#rhythm-board');
+  board.style.setProperty('--lane-count',Math.max(1,lanes.length));
+  board.style.setProperty('--lane-size',shortcuts.some(shortcut=>shortcut?.shift)?'48px':'36px');
+  board.parentElement.scrollLeft=0;
+  track.style.setProperty('--lanes',lanes.length);
+  laneBox.style.setProperty('--lanes',lanes.length);
+  track.querySelectorAll('.falling-note').forEach(el=>el.remove());
+  buildRhythmPads(rhythmState,laneBox);
+  document.querySelector('#game-key-hint').textContent='Press the shown key or tap its pad when the note reaches the line. Space pauses or resumes.';
   startButton.disabled=false;startButton.textContent='Start song';document.querySelector('#song-picker').classList.add('hidden');player.classList.add('rhythm-playing');rhythmPanel.classList.remove('hidden');document.querySelector('#results-panel').classList.add('hidden');document.querySelector('#stage').classList.add('rhythm-active');
-  events.forEach(event=>{const note=document.createElement('span');note.className=`falling-note${instrument==='drums'?' drum-note':''}`;note.style.left=`${(event.lane+.5)*100/lanes.length}%`;note.setAttribute('aria-hidden','true');event.el=note;track.append(note)});window.scrollTo({top:0,behavior:'smooth'});rhythmRaf=requestAnimationFrame(renderRhythmFrame);
+  events.forEach(event=>{
+    const note=document.createElement('span');
+    note.className=`falling-note${instrument==='drums'?' drum-note':''}`;
+    note.textContent=shortcuts[event.lane]?.label||'Tap';
+    note.style.left=`${(event.lane+.5)*100/lanes.length}%`;
+    note.setAttribute('aria-hidden','true');
+    event.el=note;
+    track.append(note);
+  });
+  window.scrollTo({top:0,behavior:'smooth'});
+  rhythmRaf=requestAnimationFrame(renderRhythmFrame);
 }
 function launchRhythmGame(){try{startRhythmGame()}catch(error){console.error('The rhythm song could not start',error);stopRhythmGame('Could not start · try again');player.classList.remove('rhythm-playing');rhythmPanel.classList.add('hidden');document.querySelector('#song-picker').classList.remove('hidden');const button=document.querySelector('#song-start');button.textContent='Start song';button.disabled=!selectedSong;document.querySelector('#sound-caption').textContent='Could not start song · tap Start song to retry';setAudioStatus('error','Game could not start')}}
 function renderRhythmFrame(now){
@@ -1971,16 +2136,30 @@ function renderRhythmFrame(now){
   if(elapsed<0){const remaining=-elapsed;overlay.textContent=remaining>2000?'3':remaining>1000?'2':'1';overlay.classList.remove('hidden')}else if(elapsed<500){overlay.textContent='GO';overlay.classList.remove('hidden')}else overlay.classList.add('hidden');
   if(state.metronomeEnabled&&elapsed>=leadInMs){const beat=Math.floor((elapsed-leadInMs)/(secondsPerBeat*1000));if(beat>state.metronomeBeat){state.metronomeBeat=beat;playMetronomeClick(beat%4===0)}}
   for(const backing of state.backingEvents)if(!backing.played&&elapsed>=leadInMs+backing.beat*secondsPerBeat*1000){backing.played=true;playSongBacking(state,backing)}
-  for(const event of state.events){if(event.judged)continue;const hitAt=leadInMs+event.beat*secondsPerBeat*1000;if(elapsed>hitAt+state.hitWindows.good){event.judged=true;event.el?.remove();state.misses++;state.combo=0;state.judged++;document.querySelector('#game-feedback').textContent='Miss';updateRhythmStats();continue}const y=hitY-((hitAt-elapsed)/approach)*hitY;event.el.style.top=`${Math.max(-20,Math.min(height+20,y))}px`;event.el.style.opacity=(y< -10||y>height+10)?'0':'1';event.el.classList.toggle('near-hit',Math.abs(hitAt-elapsed)<state.hitWindows.great)}
+  const readyLanes=new Set();
+  for(const event of state.events){
+    if(event.judged)continue;
+    const hitAt=leadInMs+event.beat*secondsPerBeat*1000;
+    if(elapsed>hitAt+state.hitWindows.good){event.judged=true;event.el?.remove();state.misses++;state.combo=0;state.judged++;document.querySelector('#game-feedback').textContent='Miss';updateRhythmStats();continue}
+    const y=hitY-((hitAt-elapsed)/approach)*hitY;
+    const distance=Math.abs(hitAt-elapsed);
+    event.el.style.top=`${Math.max(-20,Math.min(height+20,y))}px`;
+    event.el.style.opacity=(y< -10||y>height+10)?'0':'1';
+    event.el.classList.toggle('near-hit',distance<=state.hitWindows.great);
+    if(distance<=state.hitWindows.good)readyLanes.add(event.lane);
+  }
+  state.pads.forEach((pad,index)=>pad.classList.toggle('rhythm-ready',readyLanes.has(index)));
   const progress=Math.max(0,Math.min(100,(elapsed-leadInMs)/songDuration*100));document.querySelector('#song-progress').value=progress;document.querySelector('#progress-label').textContent=`${Math.round(progress)}%`;if(elapsed>leadInMs+songDuration+250){finishRhythmGame('Song complete');return}rhythmRaf=requestAnimationFrame(renderRhythmFrame)}catch(error){console.error('Rhythm game frame failed',error);document.querySelector('#countdown-overlay').classList.add('hidden');stopRhythmGame('Game paused · restart to continue')}
 }
 function judgeRhythmInput(instrument,midi,drumPart=null){
   const state=rhythmState;if(!state||state.instrument!==instrument||state.pausedAt!==null)return;const elapsed=performance.now()-state.startAt-(state.leadInMs||0),beatMs=60000/state.bpm,windowMs=state.hitWindows.good;const unresolved=state.events.filter(event=>!event.judged),nearest=unresolved.map(event=>({event,error:Math.abs(event.beat*beatMs-elapsed)})).filter(item=>item.error<=windowMs).sort((a,b)=>a.error-b.error);const correct=nearest.find(({event})=>instrument==='drums'?state.lanes[event.lane].part===drumPart:state.lanes[event.lane]===midi);
   if(!correct){if(nearest.length){const wrong=nearest[0].event;wrong.judged=true;wrong.el?.remove();state.misses++;state.judged++;state.combo=0;document.querySelector('#game-feedback').textContent='Miss';updateRhythmStats()}else{document.querySelector('#game-feedback').textContent='Try again';state.combo=0;updateRhythmStats()}return}
-  const {event,error}=correct;event.judged=true;event.el?.remove();state.judged++;state.hits++;state.combo++;state.highestCombo=Math.max(state.highestCombo,state.combo);const rating=error<=state.hitWindows.perfect?'Perfect':error<=state.hitWindows.great?'Great':'Good';if(rating==='Perfect'){state.perfect++;state.score+=300+Math.min(state.combo,50)*5;playerProgress.stats.totalPerfectHits++;if(playerProgress.stats.totalPerfectHits>=10)unlockAchievement('perfect-start')}else if(rating==='Great'){state.great++;state.score+=200+Math.min(state.combo,50)*3}else{state.good++;state.score+=120+Math.min(state.combo,50)*2}playerProgress.stats.highestCombo=Math.max(playerProgress.stats.highestCombo,state.highestCombo);if(state.highestCombo>=20)unlockAchievement('combo-master');document.querySelector('#game-feedback').textContent=rating;const hitLane=document.querySelectorAll('.game-lane')[event.lane];hitLane?.classList.add('rhythm-hit');window.setTimeout(()=>hitLane?.classList.remove('rhythm-hit'),instrument==='clarinet'?360:130);updateRhythmStats();savePlayerProgress();
+  const {event,error}=correct;event.judged=true;event.el?.remove();state.judged++;state.hits++;state.combo++;state.highestCombo=Math.max(state.highestCombo,state.combo);const rating=error<=state.hitWindows.perfect?'Perfect':error<=state.hitWindows.great?'Great':'Good';if(rating==='Perfect'){state.perfect++;state.score+=300+Math.min(state.combo,50)*5;playerProgress.stats.totalPerfectHits++;if(playerProgress.stats.totalPerfectHits>=10)unlockAchievement('perfect-start')}else if(rating==='Great'){state.great++;state.score+=200+Math.min(state.combo,50)*3}else{state.good++;state.score+=120+Math.min(state.combo,50)*2}playerProgress.stats.highestCombo=Math.max(playerProgress.stats.highestCombo,state.highestCombo);if(state.highestCombo>=20)unlockAchievement('combo-master');document.querySelector('#game-feedback').textContent=rating;
+  flashRhythmPad(state,event.lane,'rhythm-hit',220);
+  updateRhythmStats();savePlayerProgress();
 }
 function finishRhythmGame(message){
-  if(!rhythmState)return;const finishedState=rhythmState;cancelAnimationFrame(rhythmRaf);rhythmRaf=0;rhythmState=null;stopPlayback();document.querySelector('#game-feedback').textContent=message;document.querySelector('#game-pause').textContent='Pause';document.querySelector('#countdown-overlay').classList.add('hidden');
+  if(!rhythmState)return;const finishedState=rhythmState;cancelAnimationFrame(rhythmRaf);rhythmRaf=0;rhythmState=null;clearRhythmPadState(finishedState);stopPlayback();document.querySelector('#game-feedback').textContent=message;document.querySelector('#game-pause').textContent='Pause';document.querySelector('#countdown-overlay').classList.add('hidden');
   if(message==='Song complete'){const judged=finishedState.hits+finishedState.misses,accuracy=judged?finishedState.hits/judged:0,stars=accuracy>=.95?3:accuracy>=.8?2:accuracy>=.6?1:0,key=`${finishedState.instrument}:${selectedSong.id}`,previous=Number(playerProgress.bestScores[key]||0);playerProgress.bestScores[key]=Math.max(previous,finishedState.score);playerProgress.songStars[selectedSong.id]=Math.max(Number(playerProgress.songStars[selectedSong.id]||0),stars);playerProgress.stats.songsCompleted++;if(finishedState.instrument==='clarinet')playerProgress.stats.clarinetSongs++;unlockAchievement('first-song');if(playerProgress.stats.clarinetSongs>=5)unlockAchievement('clarinet-master');if(stars===3)unlockAchievement('three-star-player');
     let reward='Score saved to your progress.';if(selectedSong.level){const levelNo=selectedSong.level;playerProgress.completedLevels=Array.from(new Set([...playerProgress.completedLevels,levelNo])).sort((a,b)=>a-b);playerProgress.bestScores[`level-${levelNo}`]=Math.max(Number(playerProgress.bestScores[`level-${levelNo}`]||0),finishedState.score);if(finishedState.score>=selectedSong.target){const next=levelNo+1;if(next<=10&&!playerProgress.unlockedLevels.includes(next))playerProgress.unlockedLevels.push(next);reward=levelNo===10?'All levels complete!':`Target reached · Level ${Math.min(10,next)} ${next<=10?'unlocked':'complete'}`}else reward=`Target ${selectedSong.target.toLocaleString()} not reached yet · replay this level to unlock the next`;
       const count=playerProgress.completedLevels.length;if(count>=3)unlockAchievement('music-beginner');if(count>=5)unlockAchievement('rising-musician');if(count>=10)unlockAchievement('music-expert');renderLevels()}
@@ -1990,11 +2169,17 @@ function finishRhythmGame(message){
 function renderResults(result){
   document.querySelector('#results-title').textContent=selectedSong?.name?`${selectedSong.name} · complete`:'Song complete';document.querySelector('#results-stars').textContent='★'.repeat(result.stars)+'☆'.repeat(3-result.stars);document.querySelector('#results-stats').innerHTML=`<span>Score <b>${result.score.toLocaleString()}</b></span><span>Highest combo <b>${result.combo}</b></span><span>Perfect <b>${result.perfect}</b></span><span>Great <b>${result.great}</b></span><span>Good <b>${result.good}</b></span><span>Misses <b>${result.misses}</b></span><span>Accuracy <b>${Math.round(result.accuracy*100)}%</b></span>`;document.querySelector('#results-reward').textContent=result.reward;document.querySelector('#results-panel').classList.remove('hidden');rhythmPanel.classList.add('hidden');
 }
-function stopRhythmGame(message='Stopped'){rhythmStartToken++;if(!rhythmState)return;cancelAnimationFrame(rhythmRaf);rhythmRaf=0;rhythmState=null;stopPlayback();document.querySelector('#game-feedback').textContent=message||'Ready';document.querySelector('#countdown-overlay').classList.add('hidden');document.querySelector('#game-pause').textContent='Pause'}
+function stopRhythmGame(message='Stopped'){
+  rhythmStartToken++;
+  if(!rhythmState)return;
+  clearRhythmPadState(rhythmState);
+  cancelAnimationFrame(rhythmRaf);rhythmRaf=0;rhythmState=null;
+  stopPlayback();document.querySelector('#game-feedback').textContent=message||'Ready';document.querySelector('#countdown-overlay').classList.add('hidden');document.querySelector('#game-pause').textContent='Pause';
+}
 function setRhythmPaused(shouldPause){
   if(!rhythmState)return;const state=rhythmState,alreadyPaused=state.pausedAt!==null;if(shouldPause===alreadyPaused)return;const now=performance.now();
-  if(shouldPause){state.pausedAt=now;cancelAnimationFrame(rhythmRaf);rhythmRaf=0;stopPlayback();void audio?.suspend().catch(error=>console.warn('Audio pause failed',error));const overlay=document.querySelector('#countdown-overlay');overlay.textContent='Paused';overlay.classList.remove('hidden');document.querySelector('#game-pause').textContent='Resume';document.querySelector('#game-feedback').textContent='Paused'}
-  else{state.startAt+=now-state.pausedAt;state.pausedAt=null;void audio?.resume().catch(error=>{setAudioStatus('error','Audio blocked · interact to retry');console.warn('Audio resume failed',error)});document.querySelector('#game-pause').textContent='Pause';document.querySelector('#game-feedback').textContent='Playing';rhythmRaf=requestAnimationFrame(renderRhythmFrame)}
+  if(shouldPause){state.pausedAt=now;clearRhythmPadState(state);cancelAnimationFrame(rhythmRaf);rhythmRaf=0;stopPlayback();void audio?.suspend().catch(error=>console.warn('Audio pause failed',error));const overlay=document.querySelector('#countdown-overlay');overlay.textContent='Paused';overlay.classList.remove('hidden');document.querySelector('#game-pause').textContent='Resume';document.querySelector('#game-feedback').textContent='Paused'}
+  else{state.startAt+=now-state.pausedAt;state.pausedAt=null;for(const pad of state.pads)pad.disabled=false;void audio?.resume().catch(error=>{setAudioStatus('error','Audio blocked · interact to retry');console.warn('Audio resume failed',error)});document.querySelector('#game-pause').textContent='Pause';document.querySelector('#game-feedback').textContent='Playing';rhythmRaf=requestAnimationFrame(renderRhythmFrame)}
 }
 function toggleRhythmPause(){if(rhythmState)setRhythmPaused(rhythmState.pausedAt===null)}
 function exitRhythmGame(toSongs=true){
@@ -2025,7 +2210,6 @@ function setupMainNavigation(){
   document.querySelector('#volume-slider').addEventListener('input',event=>{const volume=Number(event.target.value);playerProgress.settings.volume=volume;document.querySelector('#settings-volume').value=String(volume);if(master&&audio)master.gain.setTargetAtTime(volume/100,audio.currentTime,.025);savePlayerProgress()});
   document.querySelector('#reset-progress').addEventListener('click',()=>{if(!window.confirm('Reset all saved levels, scores, achievements, and settings?'))return;Object.assign(playerProgress,progressDefaults());savePlayerProgress();applySavedSettings();renderLevels();renderAchievements();document.querySelector('#settings-status').textContent='Saved progress has been reset.'});
   document.addEventListener('keydown',event=>{if(event.code!=='Space'||event.repeat||document.querySelector('#song-picker').classList.contains('hidden')||!selectedSong)return;const target=event.target;if(target instanceof Element&&target.closest('input,textarea,select,[contenteditable="true"],[role="textbox"]'))return;if(target instanceof Element&&target.id==='song-start')return;event.preventDefault();launchRhythmGame()});
-  document.addEventListener('keydown',rhythmInputKey);
 }
 applySavedSettings();renderAchievements();renderLevels();buildSongPicker();setupMainNavigation();
 

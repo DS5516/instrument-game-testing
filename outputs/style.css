@@ -721,3 +721,8 @@ body{background:radial-gradient(ellipse at 50% -12%,#16345b 0,#0a1a31 42%,#06122
 .sheet-beam,.sheet-tie,.sheet-slur{fill:none;stroke:#eaf1ff;pointer-events:none}
 .sheet-beam{stroke-width:5;stroke-linecap:square}
 .sheet-tie,.sheet-slur{stroke-width:1.8;stroke-linecap:round}
+.sheet-articulation{color:#e0eaff;pointer-events:none}
+.sheet-tuplet-bracket{fill:none;stroke:#c5d4f2;stroke-width:1.5;pointer-events:none}
+.sheet-tuplet-number,.sheet-tempo-mark{fill:#eaf1ff;font:700 13px Georgia,serif;pointer-events:none}
+.sheet-tuplet-number{text-anchor:middle}
+.sheet-dynamic{fill:#eaf1ff;font:bold italic 19px Georgia,serif;pointer-events:none}

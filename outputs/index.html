@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#071427">
   <title>Instrument Testing</title>
-  <link rel="stylesheet" href="style.css?v=0.6.0">
+  <link rel="stylesheet" href="style.css?v=0.7.0">
 </head>
 <body>
   <main class="app-shell">
@@ -66,6 +66,12 @@
             <label for="sheet-beam">Beam with preceding note<select id="sheet-beam" disabled><option value="auto">Automatic</option><option value="join">Join</option><option value="break">Break</option></select></label>
             <div class="sheet-edit-actions"><button id="sheet-tie" type="button" disabled>Add tie</button><button id="sheet-slur" type="button" disabled>Add slur</button><button id="sheet-remove-links" type="button" disabled>Remove ties and slurs</button></div>
             <p id="sheet-link-hint" class="sheet-hint">Select a note to edit beams, ties, or slurs.</p>
+            <label class="sheet-rest-option" for="sheet-triplet"><input id="sheet-triplet" type="checkbox"> Triplet value</label>
+            <label for="sheet-articulation">Articulation<select id="sheet-articulation"><option value="">None</option><option value="staccato">Staccato</option><option value="tenuto">Tenuto</option><option value="accent">Accent</option><option value="marcato">Marcato</option><option value="fermata">Fermata</option></select></label>
+            <label for="sheet-dynamic">Dynamic<select id="sheet-dynamic"><option value="">Previous dynamic</option><option>pp</option><option>p</option><option>mp</option><option>mf</option><option>f</option><option>ff</option></select></label>
+            <label for="sheet-hairpin">Volume change<select id="sheet-hairpin"><option value="">None</option><option value="crescendo">Crescendo</option><option value="diminuendo">Diminuendo</option></select></label>
+            <label for="sheet-note-tempo">Tempo mark (BPM)<input id="sheet-note-tempo" type="number" min="20" max="300" placeholder="Previous tempo"></label>
+            <button id="sheet-apply-expression" type="button" disabled>Apply markings to selected</button>
           </div>
         </details>
         <p class="sheet-hint">Notes snap to thirty-second-note positions or to the end of a nearby note. Scroll sideways for later measures. Clarinet notes are written pitch and sound a whole step lower.</p>
@@ -111,6 +117,7 @@
     <div id="achievement-toast" class="achievement-toast hidden" role="status" aria-live="polite"></div>
     <footer class="page-footer"><span>MADE FOR CURIOUS EARS</span><span>✳ &nbsp; SOUND ON FOR THE FULL EXPERIENCE</span></footer>
   </main>
-  <script src="script.js?v=0.6.0"></script>
+  <script src="sheet-expression.js?v=0.7.0"></script>
+  <script src="script.js?v=0.7.0"></script>
 </body>
 </html>

@@ -1,5 +1,12 @@
 # Instrument Testing Versions
 
+## 0.7.0 — Round 4: articulation, dynamics, and tuplets (2026-11-21)
+
+- Added staccato, tenuto, accent, marcato, and fermata symbols and playback effects.
+- Added written dynamics, crescendo and diminuendo hairpins, and local tempo markings.
+- Added triplet placement, grouping, and playback at two-thirds of the written length.
+- Tested triplet duration and grouping, articulation output, dynamic gain interpolation, and the playback clock across tempo changes and fermatas.
+
 ## 0.6.0 — Round 3: beams, ties, and slurs (2026-11-21)
 
 - Added automatic meter-based beams, including secondary beams for sixteenths and explicit join or break controls.

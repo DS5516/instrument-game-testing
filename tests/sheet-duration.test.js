@@ -12,7 +12,7 @@ const context = vm.createContext({});
 const editor = vm.runInContext(source.slice(start, end) + `
   ({sheetNoteValue, sheetReadNoteValue, sheetNoteValueLabel, sheetFlagCount,
     sheetSnapPoint, sheetStaffGeometry, sheetBeatToX, sheetBeamGroups, sheetPlaybackChains, sheetResolveNotes,
-    sheetRenderBeams, sheetRenderLinks,
+    sheetRenderBeams, sheetRenderLinks, sheetTripletGroups, sheetBuildClock, sheetBuildGains,
     setNotes(notes) { sheetNotes = notes; }})
 `, context);
 
@@ -84,6 +84,36 @@ test('flags follow the written value independently of the dots', () => {
   for (const [count, base] of [1, .5, .25, .125].entries()) {
     assert.equal(editor.sheetFlagCount(editor.sheetNoteValue(base, 2).baseBeats), count);
   }
+});
+
+test('three eighth-note triplets occupy exactly one quarter-note beat', () => {
+  const duration=editor.sheetNoteValue(.5,0,true);
+  const notes=[0,1/3,2/3].map((beat,id)=>({id,beat,...duration}));
+  assert.equal(notes[2].beat+notes[2].durationBeats,1);
+  assert.equal(editor.sheetTripletGroups(notes).length,1);
+  assert.equal(editor.sheetNoteValueLabel(notes[0]),'Eighth triplet');
+});
+
+test('tempo changes and fermatas delay later beats on the same clock', () => {
+  const clock=editor.sheetBuildClock([
+    {beat:0,durationBeats:1,articulation:'fermata'},
+    {beat:2,durationBeats:1,tempo:60},
+  ],120);
+  assert.deepEqual([0,1,2,3].map(clock),[0,750,1250,2250]);
+});
+
+test('a crescendo interpolates gains toward the next explicit dynamic', () => {
+  const notes=[
+    {id:0,beat:0,dynamic:'p',hairpin:'crescendo'},
+    {id:1,beat:1},
+    {id:2,beat:2,dynamic:'f'},
+    {id:3,beat:3},
+  ];
+  const gains=editor.sheetBuildGains(notes,4);
+  assert.equal(gains.get(0),.56);
+  assert.ok(Math.abs(gains.get(1)-.89)<1e-8);
+  assert.equal(gains.get(2),1.22);
+  assert.equal(gains.get(3),1.22);
 });
 
 test('placement snaps to thirty-second positions and off-grid dotted ends', () => {

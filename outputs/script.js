@@ -864,20 +864,24 @@ function sheetTimeSignature(){return document.querySelector('#sheet-time-signatu
 function sheetMeasureBeats(){const parts=sheetTimeSignature().split('/').map(Number);return parts[0]*4/parts[1]}
 function sheetNoteValue(base,dots=0,triplet=false){
   const baseBeats=Object.hasOwn(sheetDurationLabels,base)?Number(base):1;
-  const dotCount=Object.hasOwn(sheetDotMultipliers,dots)?Number(dots):0;
+  const requestedDots=Number(dots);
+  const dotCount=Number.isInteger(requestedDots)&&requestedDots>=0&&requestedDots<sheetDotMultipliers.length?requestedDots:0;
   const value={baseBeats,dots:dotCount,durationBeats:baseBeats*sheetDotMultipliers[dotCount]};
   if(triplet){value.triplet=true;value.durationBeats*=2/3}
   return value;
 }
 function sheetReadNoteValue(note){
   if(Object.hasOwn(sheetDurationLabels,note.baseBeats))return sheetNoteValue(note.baseBeats,note.dots,note.triplet);
+  const dotOptions=[0,1,2];
+  const storedDots=Number(note.dots);
+  if(dotOptions.includes(storedDots))dotOptions.sort((a,b)=>Number(b===storedDots)-Number(a===storedDots));
   for(const base of Object.keys(sheetDurationLabels)){
-    for(let dots=0;dots<sheetDotMultipliers.length;dots++){
-      const value=sheetNoteValue(base,dots);
-      if(value.durationBeats===Number(note.durationBeats))return value;
+    for(const dots of dotOptions){
+      const value=sheetNoteValue(base,dots,note.triplet);
+      if(sheetSameBeat(value.durationBeats,Number(note.durationBeats)))return value;
     }
   }
-  return sheetNoteValue(1);
+  return sheetNoteValue(1,0,note.triplet);
 }
 function sheetToolbarNoteValue(){
   return sheetNoteValue(document.querySelector('#sheet-duration').value,document.querySelector('#sheet-dots').value,document.querySelector('#sheet-triplet').checked);
@@ -942,15 +946,27 @@ function sheetPlaybackChains(notes){
     return {members,start:note.beat,end:current.beat+current.durationBeats};
   });
 }
+function sheetTripletEvents(notes){
+  const events=[];
+  for(const note of notes){
+    const previous=events.at(-1),first=previous?.[0];
+    if(note.triplet&&!note.rest&&first?.triplet&&!first.rest
+      &&(first.voice||1)===(note.voice||1)&&sheetSameBeat(first.beat,note.beat)
+      &&sheetSameBeat(first.durationBeats,note.durationBeats))previous.push(note);
+    else events.push([note]);
+  }
+  return events;
+}
 function sheetTripletGroups(notes){
   const groups=[],run=[];
-  for(const note of notes){
-    const previous=run.at(-1);
+  for(const event of sheetTripletEvents(notes)){
+    const note=event[0],previous=run.at(-1)?.[0];
     if(!note.triplet||(previous&&(!sheetSameBeat(previous.beat+previous.durationBeats,note.beat)
+      ||(previous.voice||1)!==(note.voice||1)
       ||!sheetSameBeat(previous.durationBeats,note.durationBeats))))run.length=0;
     if(!note.triplet)continue;
-    run.push(note);
-    if(run.length===3)groups.push(run.splice(0));
+    run.push(event);
+    if(run.length===3)groups.push(run.splice(0).flat());
   }
   return groups;
 }
@@ -1027,20 +1043,45 @@ function sheetKeyAlterations(clef=sheetClef(),keySignature=document.querySelecto
   order.slice(0,Math.abs(count)).forEach(([letter])=>alterations[letter]=count>0?1:-1);return alterations;
 }
 function sheetResolveNotes(notes=sheetNotes,settings={}){
-  const clef=settings.clef||sheetClef(),keySignature=settings.keySignature||document.querySelector('#sheet-key-signature').value,timeSignature=settings.timeSignature||sheetTimeSignature(),timeParts=timeSignature.split('/').map(Number),measureBeats=timeParts[0]*4/timeParts[1],keyAlterations=sheetKeyAlterations(clef,keySignature),accidentalCarry=new Map(),resolved=[],tieSources=new Map();let currentMeasure=-1;
-  [...notes].sort((a,b)=>a.beat-b.beat||a.step-b.step).forEach(note=>{
-    const measure=Math.floor((note.beat+1e-7)/measureBeats);if(measure!==currentMeasure){currentMeasure=measure;accidentalCarry.clear()}
-    if(note.rest){resolved.push({...note,letter:null,octave:null,midi:null,label:'Rest'});return}
-    const pitch=sheetPitchAtStep(note.step,clef),carryKey=pitch.letter+pitch.octave,explicit=note.accidental||'none';let alteration;
-    if(explicit==='sharp')alteration=1;else if(explicit==='flat')alteration=-1;else if(explicit==='natural')alteration=0;else alteration=accidentalCarry.has(carryKey)?accidentalCarry.get(carryKey):(keyAlterations[pitch.letter]||0);
-    if(explicit!=='none')accidentalCarry.set(carryKey,alteration);
+  const clef=settings.clef||sheetClef();
+  const keySignature=settings.keySignature||document.querySelector('#sheet-key-signature').value;
+  const [beats,unit]=(settings.timeSignature||sheetTimeSignature()).split('/').map(Number);
+  const measureBeats=beats*4/unit;
+  const keyAlterations=sheetKeyAlterations(clef,keySignature),signs={sharp:1,flat:-1,natural:0};
+  const accidentalCarry=new Map(),pendingAccidentals=new Map(),tieSources=new Map(),resolved=[];
+  const byId=new Map(notes.map(note=>[note.id,note]));
+  let currentMeasure=-1,onset=-Infinity;
+  for(const note of [...notes].sort((a,b)=>a.beat-b.beat||a.step-b.step)){
+    const measure=Math.floor((note.beat+1e-7)/measureBeats);
+    if(measure!==currentMeasure){
+      accidentalCarry.clear();
+      pendingAccidentals.clear();
+      currentMeasure=measure;
+    }else if(!sheetSameBeat(onset,note.beat)){
+      // Simultaneous notes read the same preceding accidental state.
+      for(const [pitch,alteration] of pendingAccidentals){
+        if(alteration===null)accidentalCarry.delete(pitch);
+        else accidentalCarry.set(pitch,alteration);
+      }
+      pendingAccidentals.clear();
+    }
+    if(!sheetSameBeat(onset,note.beat))onset=note.beat;
+    if(note.rest){resolved.push({...note,letter:null,octave:null,midi:null,label:'Rest'});continue}
+
+    const pitch=sheetPitchAtStep(note.step,clef),carryKey=pitch.letter+pitch.octave;
+    const explicit=Object.hasOwn(signs,note.accidental)?signs[note.accidental]:undefined;
     const source=tieSources.get(note.id);
-    if(explicit==='none'&&sheetCanTie(source,note))alteration=source.midi-pitch.naturalMidi;
+    const inherited=sheetCanTie(source,note)?source.midi-pitch.naturalMidi:undefined;
+    const alteration=explicit??inherited??accidentalCarry.get(carryKey)??keyAlterations[pitch.letter]??0;
+    if(explicit!==undefined){
+      const pending=pendingAccidentals.get(carryKey);
+      pendingAccidentals.set(carryKey,pending===undefined||pending===explicit?explicit:null);
+    }
     const symbol=alteration===1?'♯':alteration===-1?'♭':'',label=pitch.letter+symbol+pitch.octave;
     const result={...note,letter:pitch.letter,octave:pitch.octave,midi:pitch.naturalMidi+alteration,label};
     resolved.push(result);
-    if(note.tieTo&&!tieSources.has(note.tieTo))tieSources.set(note.tieTo,result);
-  });
+    if(note.tieTo&&!tieSources.has(note.tieTo)&&sheetCanTie(result,byId.get(note.tieTo)))tieSources.set(note.tieTo,result);
+  }
   return resolved;
 }
 let sheetRenderedLayout=null;
@@ -1218,14 +1259,17 @@ function sheetHandlePointerUp(event){
 function sheetSvgElement(tag,attributes={},text=''){
   const element=document.createElementNS('http://www.w3.org/2000/svg',tag);Object.entries(attributes).forEach(([name,value])=>element.setAttribute(name,String(value)));if(text!=='')element.textContent=text;return element;
 }
-function sheetRenderBeams(svg,groups,layout,hasTwoVoices=false){
+function sheetRenderBeams(svg,groups,layout,hasTwoVoices=false,chordStems=new Map()){
   const stems=new Map();
   for(const group of groups){
-    const direction=hasTwoVoices?(group[0].voice===2?-1:1):group.reduce((sum,note)=>sum+note.step,0)/group.length<4?1:-1;
-    const ys=group.map(note=>sheetStepToY(note.step,layout));
+    const spans=group.map(note=>chordStems.get(note.id)??{minStep:note.step,maxStep:note.step});
+    const chord=spans.find(span=>span.direction);
+    const direction=hasTwoVoices?(group[0].voice===2?-1:1):chord?.direction??(group.reduce((sum,note)=>sum+note.step,0)/group.length<4?1:-1);
+    const ys=spans.map(span=>sheetStepToY(direction===1?span.maxStep:span.minStep,layout));
     const y=(direction===1?Math.min(...ys):Math.max(...ys))-direction*36;
-    const positions=group.map(note=>{
-      const stem={x:sheetBeatToX(note.beat,layout)+direction*8,y,direction,level:sheetFlagCount(sheetReadNoteValue(note).baseBeats)};
+    const positions=group.map((note,index)=>{
+      const span=spans[index],startStep=direction===1?span.minStep:span.maxStep;
+      const stem={x:sheetBeatToX(note.beat,layout)+direction*8,y,direction,startY:sheetStepToY(startStep,layout),level:sheetFlagCount(sheetReadNoteValue(note).baseBeats)};
       stems.set(note.id,stem);
       return stem;
     });
@@ -1273,16 +1317,19 @@ function sheetRenderExpression(svg,g,note,x,y,layout){
   if(note.dynamic)svg.append(sheetSvgElement('text',{x,y:bottom+43,class:'sheet-dynamic'},note.dynamic));
 }
 function sheetRenderTriplets(svg,notes,layout){
-  const groups=[1,2].flatMap(voice=>sheetTripletGroups(notes.filter(note=>(note.voice||1)===voice)));
+  const voices=[1,2].map(voice=>notes.filter(note=>(note.voice||1)===voice));
+  const groups=voices.flatMap(sheetTripletGroups);
   const grouped=new Set(groups.flat().map(note=>note.id));
   for(const group of groups){
-    const x1=sheetBeatToX(group[0].beat,layout),x2=sheetBeatToX(group[2].beat,layout),center=(x1+x2)/2;
+    const x1=sheetBeatToX(group[0].beat,layout),x2=sheetBeatToX(group.at(-1).beat,layout),center=(x1+x2)/2;
     const y=Math.min(layout.top,...group.map(note=>sheetStepToY(note.rest?4:note.step,layout)))-44;
     const d=`M ${x1} ${y+5} V ${y} H ${center-8} M ${center+8} ${y} H ${x2} V ${y+5}`;
     svg.append(sheetSvgElement('path',{d,class:'sheet-tuplet-bracket'}),sheetSvgElement('text',{x:center,y:y+4,class:'sheet-tuplet-number'},'3'));
   }
-  for(const note of notes)if(note.triplet&&!grouped.has(note.id)){
-    const x=sheetBeatToX(note.beat,layout),y=Math.min(layout.top,sheetStepToY(note.rest?4:note.step,layout))-40;
+  for(const event of voices.flatMap(sheetTripletEvents)){
+    const note=event[0];
+    if(!note.triplet||grouped.has(note.id))continue;
+    const x=sheetBeatToX(note.beat,layout),y=Math.min(layout.top,...event.map(({rest,step})=>sheetStepToY(rest?4:step,layout)))-40;
     svg.append(sheetSvgElement('text',{x,y,class:'sheet-tuplet-number'},'3'));
   }
 }
@@ -1302,7 +1349,10 @@ function sheetChordLayout(notes,layout){
     for(const [index,note] of ordered.entries()){
       offset=index&&Math.abs(note.step-ordered[index-1].step)===1?(offset?0:direction*15):0;
       headOffsets.set(note.id,offset);
-      if(chord.length>1)chordStems.set(note.id,{direction,draw:index===0,end:sheetStepToY(ordered.at(-1).step,layout)-direction*36});
+      if(chord.length>1){
+        const low=Math.min(ordered[0].step,ordered.at(-1).step),high=Math.max(ordered[0].step,ordered.at(-1).step);
+        chordStems.set(note.id,{direction,draw:index===0,minStep:low,maxStep:high,end:sheetStepToY(ordered.at(-1).step,layout)-direction*36});
+      }
     }
   }
   return {headOffsets,chordStems,hasTwoVoices};
@@ -1383,7 +1433,7 @@ function sheetRenderSystem(svg,layout,allNotes,row,marks){
   const {headOffsets,chordStems,hasTwoVoices}=sheetChordLayout(resolved,layout);
   const notesWithStems=resolved.filter(note=>chordStems.get(note.id)?.draw!==false);
   const beams=[1,2].flatMap(voice=>sheetBeamGroups(notesWithStems.filter(note=>(note.voice||1)===voice),sheetTimeSignature()));
-  const beamStems=sheetRenderBeams(svg,beams,layout,hasTwoVoices);
+  const beamStems=sheetRenderBeams(svg,beams,layout,hasTwoVoices,chordStems);
   resolved.forEach(note=>{
     const offset=headOffsets.get(note.id)||0;
     const x=sheetBeatToX(note.beat,layout)+offset,step=note.rest?(note.voice===2?2:4):note.step,y=sheetStepToY(step,layout);
@@ -1405,7 +1455,7 @@ function sheetRenderSystem(svg,layout,allNotes,row,marks){
         const beam=beamStems.get(note.id);
         const direction=beam?.direction??chord?.direction??(note.voice===2?-1:hasTwoVoices?1:step<4?1:-1);
         const stemX=beam?.x??x-offset+direction*8,stemEnd=beam?.y??chord?.end??y-direction*36;
-        g.append(sheetSvgElement('line',{x1:stemX,y1:y-direction,x2:stemX,y2:stemEnd,class:'sheet-stem'}));
+        g.append(sheetSvgElement('line',{x1:stemX,y1:(beam?.startY??y)-direction,x2:stemX,y2:stemEnd,class:'sheet-stem'}));
         for(let flag=0;!beam&&flag<sheetFlagCount(baseBeats);flag++){
           const flagY=stemEnd+flag*8*direction;
           const d=`M ${stemX} ${flagY} C ${stemX+direction*15} ${flagY+6*direction} ${stemX+direction*16} ${flagY+16*direction} ${stemX+direction*8} ${flagY+20*direction}`;

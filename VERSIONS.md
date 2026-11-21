@@ -1,5 +1,11 @@
 # Instrument Testing Versions
 
+## Sheet creator repair, round 3 — Notation (2026-11-21)
+
+- Recover written triplet values from older saved durations and group triplets by onset so a chord does not split the bracket.
+- Anchor beams beyond every chord head. Resolve simultaneous accidentals without depending on insertion order, and prevent invalid ties from taking precedence over valid ones.
+- Added calculation and SVG tests for legacy triplets, tuplets with chords, beam height, accidental carry, and tie validity.
+
 ## Sheet creator repair, round 2 — Editing and dragging (2026-11-21)
 
 - Capture drags on the stable SVG and consume the release click so moving a note cannot create a duplicate. Keep the grab offset, selection, and keyboard focus usable through redraws and canceled gestures.

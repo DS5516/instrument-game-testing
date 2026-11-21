@@ -1,5 +1,12 @@
 # Instrument Testing Versions
 
+## 0.5.0 — Round 2: dotted and thirty-second notes (2026-11-21)
+
+- Added thirty-second notes and rests and zero, one, or two augmentation dots. Written symbols retain their base shape while duration changes by the exact dot multiplier.
+- Spaced the staff to make shorter notes easier to place. Snapping also recognizes nearby note endings between regular grid positions.
+- Removed the sheet player's minimum 90 ms note length so short notes end at their written duration.
+- Node tests cover each duration, flag counts, compatibility with duration-only notes, and the finer placement grid.
+
 ## 0.4.0 — Staff placement regression round (2026-11-21)
 
 - Consolidated pointer-to-staff pitch snapping so placement and vertical dragging use the same SVG-coordinate step conversion.

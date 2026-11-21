@@ -717,3 +717,4 @@ body{background:radial-gradient(ellipse at 50% -12%,#16345b 0,#0a1a31 42%,#06122
 .sheet-note-label{fill:#f4f7ff;font:9px 'DM Mono',monospace}
 .sheet-note-label-bg{fill:#152a48;stroke:#6c86b5;stroke-width:.8}
 .sheet-note-preview .sheet-note-label{opacity:1}
+.sheet-augmentation-dot{fill:#eaf1ff;pointer-events:none}

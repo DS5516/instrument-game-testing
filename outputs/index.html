@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#071427">
   <title>Instrument Testing</title>
-  <link rel="stylesheet" href="style.css?v=0.4.0">
+  <link rel="stylesheet" href="style.css?v=0.5.0">
 </head>
 <body>
   <main class="app-shell">
@@ -55,12 +55,13 @@
           <label for="sheet-time-signature">Time signature<select id="sheet-time-signature"><option value="4/4">4/4</option><option value="3/4">3/4</option><option value="6/8">6/8</option></select></label>
         </div></details>
         <div class="sheet-note-toolbar" aria-label="Note editing tools">
-          <label for="sheet-duration">Note value<select id="sheet-duration"><option value="4">Whole</option><option value="2">Half</option><option value="1" selected>Quarter</option><option value="0.5">Eighth</option><option value="0.25">Sixteenth</option></select></label>
+          <label for="sheet-duration">Note value<select id="sheet-duration"><option value="4">Whole</option><option value="2">Half</option><option value="1" selected>Quarter</option><option value="0.5">Eighth</option><option value="0.25">Sixteenth</option><option value="0.125">Thirty-second</option></select></label>
+          <label for="sheet-dots">Augmentation dots<select id="sheet-dots"><option value="0">None</option><option value="1">Dotted ·</option><option value="2">Double-dotted ··</option></select></label>
           <label for="sheet-accidental">Accidental<select id="sheet-accidental"><option value="none">Key signature</option><option value="sharp">Sharp ♯</option><option value="flat">Flat ♭</option><option value="natural">Natural ♮</option></select></label>
           <label class="sheet-rest-option" for="sheet-place-rest"><input id="sheet-place-rest" type="checkbox"> Place a rest</label>
           <div class="sheet-edit-actions"><button id="sheet-undo" type="button">Undo</button><button id="sheet-redo" type="button">Redo</button><button id="sheet-copy" type="button">Copy</button><button id="sheet-paste" type="button">Paste</button><button id="sheet-delete-note" type="button">Delete</button></div>
         </div>
-        <p class="sheet-hint">Notes snap to sixteenth-note positions. Scroll sideways to reach later measures. Clarinet notes are written pitch and sound a whole step lower.</p>
+        <p class="sheet-hint">Notes snap to thirty-second-note positions or to the end of a nearby note. Scroll sideways for later measures. Clarinet notes are written pitch and sound a whole step lower.</p>
         <div class="sheet-staff-viewport"><svg id="sheet-staff" role="img" aria-label="Clickable five-line music staff"></svg></div>
         <div class="sheet-playback-bar">
           <div class="sheet-transport"><button id="sheet-play" class="rhythm-action" type="button">▶ Play sheet</button><button id="sheet-pause" class="rhythm-action secondary-action" type="button" disabled>Pause</button><button id="sheet-stop" class="rhythm-action secondary-action" type="button" disabled>Stop</button><button id="sheet-restart" class="rhythm-action secondary-action" type="button">Restart</button></div>
@@ -103,6 +104,6 @@
     <div id="achievement-toast" class="achievement-toast hidden" role="status" aria-live="polite"></div>
     <footer class="page-footer"><span>MADE FOR CURIOUS EARS</span><span>✳ &nbsp; SOUND ON FOR THE FULL EXPERIENCE</span></footer>
   </main>
-  <script src="script.js?v=0.4.0"></script>
+  <script src="script.js?v=0.5.0"></script>
 </body>
 </html>

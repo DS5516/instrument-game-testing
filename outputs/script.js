@@ -1182,26 +1182,36 @@ function updateSheetPreview(position){
   const layout=sheetDisplayLayout(),moving=sheetNotes.find(note=>note.id===position.excludeId);
   const preview=moving?{...moving,...position}:sheetEntryAt(position);
   if(!moving&&sheetPlacementConflict(preview)){group.setAttribute('visibility','hidden');return}
-  const y=sheetStepToY(preview.rest?(preview.voice===2?2:4):preview.step,layout)+sheetBeatSystem(preview.beat,layout)*layout.height;
+  const step=preview.rest?(preview.voice===2?2:4):preview.step;
+  const y=sheetStepToY(step,layout)+sheetBeatSystem(preview.beat,layout)*layout.height;
   const previewId='sheet-ghost',row=sheetBeatSystem(preview.beat,layout);
   const rowNotes=sheetNotes.filter(note=>note.id!==position.excludeId&&sheetBeatSystem(note.beat,layout)===row);
   const {headOffsets}=sheetChordLayout([...rowNotes,{...preview,id:previewId}],layout);
   const x=sheetBeatToX(preview.beat,layout)+(headOffsets.get(previewId)||0),label=sheetPreviewLabel(preview);
   group.setAttribute('transform',`translate(${x} ${y})`);
   group.setAttribute('visibility','visible');
-  const {baseBeats}=sheetReadNoteValue(preview);
   group.replaceChildren();
-  if(preview.rest){
-    if(baseBeats>=2)group.append(sheetSvgElement('rect',{x:-8,y:baseBeats===4?-20:-8,width:16,height:8,rx:1,class:'sheet-rest-block'}));
-    else group.append(sheetSvgElement('text',{x:-7,y:11,class:'sheet-rest-glyph'},{1:'𝄽',0.5:'𝄾',0.25:'𝄿',0.125:'𝅀'}[baseBeats]));
-  }else{
-    for(const ledger of sheetLedgerSteps(preview.step)){
-      const ledgerY=(preview.step-ledger)*layout.stepHeight;
-      group.append(sheetSvgElement('line',{x1:-14,x2:14,y1:ledgerY,y2:ledgerY,class:'sheet-ledger-line'}));
-    }
-    group.append(sheetSvgElement('ellipse',{cx:0,cy:0,rx:9,ry:6,transform:'rotate(-18 0 0)',class:'sheet-notehead'+(baseBeats>=2?' hollow':'')}));
-  }
+  sheetRenderNoteSymbols(group,preview,0,0,step,layout);
   group.append(sheetSvgElement('text',{x:15,y:-5,class:'sheet-note-label'},label));
+}
+function sheetRenderNoteSymbols(group,note,x,y,step,layout){
+  const {baseBeats,dots}=sheetReadNoteValue(note);
+  if(note.rest){
+    if(baseBeats>=2)group.append(sheetSvgElement('rect',{x:x-8,y:y+(baseBeats===4?-20:-8),width:16,height:8,rx:1,class:'sheet-rest-block'}));
+    else group.append(sheetSvgElement('text',{x:x-7,y:y+11,class:'sheet-rest-glyph'},{1:'𝄽',0.5:'𝄾',0.25:'𝄿',0.125:'𝅀'}[baseBeats]));
+  }else{
+    for(const ledger of sheetLedgerSteps(step)){
+      const lineY=y+(step-ledger)*layout.stepHeight;
+      group.append(sheetSvgElement('line',{x1:x-14,x2:x+14,y1:lineY,y2:lineY,class:'sheet-ledger-line'}));
+    }
+    const accidental={sharp:'♯',flat:'♭',natural:'♮'}[note.accidental];
+    if(accidental)group.append(sheetSvgElement('text',{x:x-19,y:y+5,class:'sheet-accidental-symbol'},accidental));
+    group.append(sheetSvgElement('ellipse',{cx:x,cy:y,rx:9,ry:6,transform:`rotate(-18 ${x} ${y})`,class:'sheet-notehead'+(baseBeats>=2?' hollow':'')}));
+  }
+  for(let dot=0;dot<dots;dot++){
+    const dotY=note.rest?y-7:y-(step%2===0?layout.stepHeight:0);
+    group.append(sheetSvgElement('circle',{cx:x+14+dot*7,cy:dotY,r:2.3,class:'sheet-augmentation-dot'}));
+  }
 }
 function sheetCanMoveTo(note,beat,step,notes=sheetNotes){
   return notes.every(other=>{
@@ -1323,10 +1333,10 @@ function sheetRenderLinks(svg,notes,layout,row=0){
     }
   }
 }
-function sheetRenderExpression(svg,g,note,x,y,layout){
+function sheetRenderExpression(svg,g,note,x,y,layout,stemDirection){
   const {top,bottom}=layout;
-  const markY=note.rest?bottom+14:y+(note.step<4?13:-15);
-  const articulation=SheetExpression.renderArticulation(sheetSvgElement,note.articulation,x,markY,note.step<4?-1:1);
+  const markY=note.rest?bottom+14:y+(stemDirection===1?13:-15);
+  const articulation=SheetExpression.renderArticulation(sheetSvgElement,note.articulation,x,markY,-stemDirection);
   if(articulation)g.append(articulation);
   if(note.tempo)svg.append(sheetSvgElement('text',{x,y:top-25,class:'sheet-tempo-mark'},'♩ = '+note.tempo));
   if(note.dynamic)svg.append(sheetSvgElement('text',{x,y:bottom+43,class:'sheet-dynamic'},note.dynamic));
@@ -1461,17 +1471,11 @@ function sheetRenderSystem(svg,layout,allNotes,row,marks){
     const g=sheetSvgElement('g',{class:'sheet-note'+(note.id===selectedSheetNoteId?' selected':'')+(playing?' playing':''),'data-sheet-note-id':note.id,tabindex:0,role:'button','aria-label':'Select '+displayLabel+' · '+valueLabel});
     const titleElement=sheetSvgElement('title',{},displayLabel+' · '+valueLabel);
     g.append(titleElement);
-    if(!note.rest)sheetLedgerSteps(step).forEach(ledger=>{const ledgerY=sheetStepToY(ledger,layout);g.append(sheetSvgElement('line',{x1:x-14,y1:ledgerY,x2:x+14,y2:ledgerY,class:'sheet-ledger-line'}))});
-    if(note.rest){
-      if(baseBeats>=2){g.append(sheetSvgElement('rect',{x:x-8,y:y+(baseBeats===4?-20:-8),width:16,height:8,rx:1,class:'sheet-rest-block'}))}
-      else{const glyph={1:'𝄽',0.5:'𝄾',0.25:'𝄿',0.125:'𝅀'}[baseBeats];g.append(sheetSvgElement('text',{x:x-7,y:y+11,class:'sheet-rest-glyph'},glyph))}
-    }else{
-      if(note.accidental&&note.accidental!=='none'){const symbol=note.accidental==='sharp'?'♯':note.accidental==='flat'?'♭':'♮';g.append(sheetSvgElement('text',{x:x-19,y:y+5,class:'sheet-accidental-symbol'},symbol))}
-      g.append(sheetSvgElement('ellipse',{cx:x,cy:y,rx:9,ry:6,transform:'rotate(-18 '+x+' '+y+')',class:'sheet-notehead'+(baseBeats>=2?' hollow':'')}));
-      const chord=chordStems.get(note.id);
+    sheetRenderNoteSymbols(g,note,x,y,step,layout);
+    const chord=chordStems.get(note.id),beam=beamStems.get(note.id);
+    const direction=beam?.direction??chord?.direction??(note.voice===2?-1:hasTwoVoices?1:step<4?1:-1);
+    if(!note.rest){
       if(baseBeats<4&&(!chord||chord.draw)){
-        const beam=beamStems.get(note.id);
-        const direction=beam?.direction??chord?.direction??(note.voice===2?-1:hasTwoVoices?1:step<4?1:-1);
         const stemX=beam?.x??x-offset+direction*8,stemEnd=beam?.y??chord?.end??y-direction*36;
         g.append(sheetSvgElement('line',{x1:stemX,y1:(beam?.startY??y)-direction,x2:stemX,y2:stemEnd,class:'sheet-stem'}));
         for(let flag=0;!beam&&flag<sheetFlagCount(baseBeats);flag++){
@@ -1483,8 +1487,7 @@ function sheetRenderSystem(svg,layout,allNotes,row,marks){
       const labelWidth=Math.max(24,displayLabel.length*6+8),labelX=x+12+dots*7,labelY=y-8;
       g.append(sheetSvgElement('rect',{x:labelX,y:labelY,width:labelWidth,height:15,rx:4,class:'sheet-note-label-bg'}),sheetSvgElement('text',{x:labelX+4,y:y+3,class:'sheet-note-label'},displayLabel));
     }
-    for(let dot=0;dot<dots;dot++)g.append(sheetSvgElement('circle',{cx:x+14+dot*7,cy:note.rest?y-7:y-(step%2===0?layout.stepHeight:0),r:2.3,class:'sheet-augmentation-dot'}));
-    sheetRenderExpression(svg,g,note,x,y,layout);
+    sheetRenderExpression(svg,g,note,x,y,layout,direction);
     g.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();sheetSelectOrLink(note.id)}});svg.append(g);
   });
   sheetRenderLinks(svg,allNotes,layout,row);

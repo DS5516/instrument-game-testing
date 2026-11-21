@@ -468,3 +468,34 @@ test('print systems use the score and stay the same when display zoom changes', 
   assert.equal(editor.run('sheetDisplayLayout().measuresPerSystem'),1);
   assert.deepEqual(description(),before);
 });
+
+test('the ghost and committed ledger note use identical marking positions', () => {
+  const editor=createEditor();
+  editor.input('duration',.5);
+  editor.input('dots',2);
+  editor.input('accidental','sharp');
+  editor.pointer(0,-2,'pointermove');
+  const ghost=editor.svg.querySelector('#sheet-note-preview');
+  const shape=(group,selector)=>group.findAll(element=>element.classes.has(selector));
+  const start=shape(ghost,'sheet-notehead')[0];
+  assert.equal(shape(ghost,'sheet-accidental-symbol')[0].textContent,'♯');
+  assert.equal(shape(ghost,'sheet-augmentation-dot').length,2);
+  const relativePositions=(group,head,selector)=>shape(group,selector).map(dot=>[
+    Number(dot.attrs.cx)-Number(head.attrs.cx),Number(dot.attrs.cy)-Number(head.attrs.cy),
+  ]);
+  const offsets=relativePositions(ghost,start,'sheet-augmentation-dot');
+  editor.pointer(0,-2);
+  const committed=editor.svg.find(element=>element.dataset.sheetNoteId===editor.notes()[0].id);
+  const end=shape(committed,'sheet-notehead')[0];
+  assert.deepEqual(relativePositions(committed,end,'sheet-augmentation-dot'),offsets);
+  assert.equal(shape(committed,'sheet-ledger-line').length,1);
+  assert.equal(editor.run('sheetResolveNotes()[0].label'),'C♯4');
+});
+
+test('entry and playback tools precede the staff while optional notation follows it', () => {
+  const position=id=>html.indexOf(`id="${id}"`);
+  assert.ok(position('sheet-duration')>0&&position('sheet-duration')<position('sheet-staff'));
+  assert.ok(position('sheet-play')>0&&position('sheet-play')<position('sheet-staff'));
+  assert.ok(position('sheet-clef')>position('sheet-staff'));
+  assert.ok(position('sheet-print')>position('sheet-staff'));
+});

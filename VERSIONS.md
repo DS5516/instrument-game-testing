@@ -1,9 +1,15 @@
 # Instrument Testing Versions
 
+## Sheet creator repair, round 6 — Editor layout and regression checks (2026-11-21)
+
+- Put note entry and playback above the staff and move optional notation below it so expanded options leave the playing surface in place.
+- Add tooltips and visible focus and rest selection. Use the same SVG drawing for ghost and committed noteheads, rests, ledger lines, accidentals, and dots.
+- Verified 76 automated tests, including all six Rhythm Mode instrument mappings, a score loaded into Rhythm Mode, and keyboard input after returning to Free Play piano. Live mouse, browser zoom, audible playback, and PDF rendering were unavailable.
+
 ## Sheet creator repair, round 5 — Local saves, MusicXML, and printing (2026-11-21)
 
 - Discard stale imports after opening or editing a different score. Keep unrecognized legacy records and refuse to overwrite unreadable local saved data.
-- Preserve multiple MusicXML slurs, tie numbering across serialized voices, chord-member marks, nested accidental state, hairpin and tempo offsets, and double-dotted tempo values. Fall back to standard notation when optional imported metadata is invalid.
+- Preserve multiple MusicXML slurs, tie numbering across serialized voices, chord-member marks, accidental carry, hairpin and tempo offsets, and double-dotted tempo values. Fall back to standard notation when optional imported metadata is invalid.
 - Build print systems from the score at a fixed paper layout rather than cloning the zoomed screen. Display errors when file reading or printing is unavailable.
 - Tested the import race, unreadable files and storage, print system construction, and MusicXML round trips, including metadata-free details. Actual browser print output was unavailable.
 

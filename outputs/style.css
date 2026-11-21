@@ -762,7 +762,18 @@ body{background:radial-gradient(ellipse at 50% -12%,#16345b 0,#0a1a31 42%,#06122
 .sheet-tuplet-number,.sheet-tempo-mark{fill:#eaf1ff;font:700 13px Georgia,serif;pointer-events:none}
 .sheet-tuplet-number{text-anchor:middle}
 .sheet-dynamic{fill:#eaf1ff;font:bold italic 19px Georgia,serif;pointer-events:none}
-.sheet-staff-viewport{max-height:min(72vh,750px)}
+.sheet-staff-viewport{max-height:clamp(245px,52vh,620px);scrollbar-gutter:stable}
+.sheet-creator-card>.sheet-note-toolbar{margin-top:10px}
+.sheet-creator-card>.sheet-playback-bar{margin:8px 0;grid-template-columns:minmax(0,1fr) auto}
+.sheet-creator-card>.sheet-hint{margin:5px 0 7px}
+.sheet-creator-card>.sheet-save-actions{margin-top:12px}
+.sheet-creator-card .sheet-note-toolbar button,.sheet-creator-card .sheet-transport button{min-height:34px}
+.sheet-creator-card .sheet-note-toolbar :is(button,select,input):focus-visible,
+.sheet-creator-card .sheet-transport button:focus-visible,.sheet-staff-viewport:focus-visible{
+  outline:2px solid #c7b4ff;outline-offset:2px;
+}
+.sheet-note:is(.selected,:focus-visible) :is(.sheet-rest-glyph,.sheet-rest-block){fill:#cfbaff;filter:drop-shadow(0 0 4px #8875c3)}
+@media(max-width:660px){.sheet-creator-card>.sheet-playback-bar{grid-template-columns:1fr}.sheet-creator-card>.sheet-playback-bar output{order:0}}
 .sheet-staff-viewport svg{min-width:0;min-height:0;touch-action:pan-x pan-y}
 .sheet-notehead,.sheet-rest-block,.sheet-rest-glyph{touch-action:none}
 #sheet-staff.erasing .sheet-note{cursor:crosshair}

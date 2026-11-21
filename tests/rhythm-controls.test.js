@@ -55,7 +55,7 @@ const expected = {
   drums: 'D S A L ; F G H K J',
 };
 
-function buildHarness() {
+function buildHarness({realPiano=false}={}) {
   let now = 1000;
   let timerId = 0;
   const timers = new Map();
@@ -73,6 +73,7 @@ function buildHarness() {
   };
   const player = new Element('div');
   player.dataset = {};
+  const pianoKey = new Element('button');
   const activeControls = new Set();
   const controlHeld = new Map();
   const clock = () => now;
@@ -81,6 +82,7 @@ function buildHarness() {
   const savedStats = { totalPerfectHits: 0, highestCombo: 0 };
   const sandbox = {
     document, Element, player, activeControls, controlHeld, setTimeout, clearTimeout, console,
+    heldPianoKeys: new Map(), controls:{querySelector:()=>pianoKey},
     window: { setTimeout, clearTimeout, scrollTo() {} },
     performance: { now: clock },
     audio: null,
@@ -100,7 +102,6 @@ function buildHarness() {
     visiblePlayableNotes: instrument => Array.from(engine.pitches[instrument]),
     monophonicInstruments: new Set(['flute', 'clarinet']),
     rhythmWindowsFor: () => ({ perfect: 65, great: 125, good: 220 }),
-    rhythmSongTotalBeats: song => song.pattern.length * song.step,
     playerProgress: { settings: {}, stats: savedStats },
     drumSongCharts: { test: [0, 1, 2] },
     playSongBacking() {}, playMetronomeClick() {}, updateRhythmStats() {},
@@ -123,15 +124,20 @@ function buildHarness() {
   const engine = vm.runInNewContext([
     sourceBetween('const drumUrls=', 'const midiForName='),
     sourceBetween('const drumKeyboardMap=', 'const violinKeyboardMap='),
+    ...(realPiano?[
+      sourceBetween('const pianoKeyMap=', 'const guitarKeyboardMap='),
+      sourceBetween('function playFromComputerKey(', 'function renderGuitarSvg('),
+    ]:[]),
     sourceBetween('const rhythmPicker=', '// Original five practice songs.'),
+    sourceBetween('function rhythmSongTotalBeats(', 'function niceLength('),
     sourceBetween('function releaseControl(', 'function buildPiano('),
-    sourceBetween('function lanePitches(', 'const rhythmWindowsFor='),
+    sourceBetween('function rhythmSheetMidi(', 'const rhythmWindowsFor='),
     sourceBetween('function rhythmShortcut(', 'function finishRhythmGame('),
     sourceBetween('function stopRhythmGame(', 'function exitRhythmGame('),
     sourceBetween("document.addEventListener('keydown',rememberMappedKeyDown", "window.addEventListener('blur'"),
     `({
-      start(instrument, pattern) {
-        selectedSong={id:'test',name:'Test',pattern,chords:[60],step:.5,bpm:120,difficulty:'Easy'};
+      start(instrument, pattern, settings={}) {
+        selectedSong={id:'test',name:'Test',pattern,chords:[60],step:.5,bpm:120,difficulty:'Easy',...settings};
         player.dataset.instrument=instrument;
         startRhythmGame();
         return rhythmState;
@@ -145,8 +151,34 @@ function buildHarness() {
     code: { 'Space': 'Space', ';': 'Semicolon' }[key] || 'Key' + key,
     ...fields,
   });
-  return { ...engine, clock: value => { now = value; }, calls, freePlay, key, timers };
+  return { ...engine, clock: value => { now = value; }, calls, freePlay, key, timers, pianoKey };
 }
+
+test('a saved sheet still creates Rhythm Mode lanes at the written beats', () => {
+  const app=buildHarness();
+  const state=app.start('clarinet',[],{
+    sheetInstrument:'clarinet',
+    sheetNotes:[
+      {beat:0,durationBeats:1,midi:60,letter:'C'},
+      {beat:1,durationBeats:1,rest:true},
+      {beat:2,durationBeats:1,midi:64,letter:'E'},
+    ],
+  });
+  assert.deepEqual(Array.from(state.lanes),[58,62]);
+  assert.deepEqual(Array.from(state.events,event=>event.beat),[0,2]);
+  assert.equal(state.totalBeats,3);
+});
+
+test('leaving Rhythm Mode returns keyboard input to the Free Play piano', () => {
+  const app=buildHarness({realPiano:true});
+  app.start('piano',[0,1]);
+  app.stopRhythmGame();
+  app.key('C');
+  assert.deepEqual(app.calls,[['piano',60]]);
+  assert.ok(app.pianoKey.classList.contains('playing'));
+  app.key('C',{},'keyup');
+  assert.ok(!app.pianoKey.classList.contains('playing'));
+});
 
 test('Rhythm Mode shows and plays the assigned shortcuts for all six instruments', () => {
   for (const [instrument, letters] of Object.entries(expected)) {

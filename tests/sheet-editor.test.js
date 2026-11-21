@@ -82,7 +82,7 @@ class TestElement {
   }
 }
 
-function createEditor() {
+function createEditor({musicXml=SheetMusicXML}={}) {
   const nodes = new Map([...html.matchAll(/id="(sheet-[^"]+|composer-page)"/g)]
     .map(([, id]) => ['#' + id, new TestElement(id)]));
   const svg = nodes.get('#sheet-staff');
@@ -127,7 +127,7 @@ function createEditor() {
     info: { piano: { name: 'Piano' }, drums: { name: 'Drums' }, clarinet: { name: 'Clarinet' } },
     monophonicInstruments: new Set(['flute','clarinet']),
     SheetExpression,
-    SheetMusicXML,
+    SheetMusicXML: musicXml,
     Option: function (name, value) { Object.assign(this, { name, value }); },
     console,
     performance: { now: () => now },
@@ -183,7 +183,7 @@ function createEditor() {
   }
 
   return {
-    run, svg, viewport, control, input, toggle, press, pointer, advancePlayback, audioEvents,
+    run, svg, viewport, control, input, toggle, press, pointer, advancePlayback, audioEvents, storage,
     notes: () => JSON.parse(run('JSON.stringify(sheetNotes)')),
     systems: () => svg.findAll(element => element.classes.has('sheet-system')),
   };
@@ -405,4 +405,66 @@ test('a tie attacks once, highlights each member, and leaves the following rest 
   assert.equal(control('current-note').textContent,'Rest');
   assert.deepEqual(audioEvents.map(({kind,time,midi})=>[kind,time,midi]),[['start',0,64],['stop',1000,64]]);
   advancePlayback();
+});
+
+test('a MusicXML read cannot replace a saved score opened while the file was loading', async () => {
+  const late={title:'Late file',instrument:'piano',notes:[],timeSignature:'4/4'};
+  let parseCount=0;
+  const editor=createEditor({musicXml:{importProject(){parseCount++;return late}}});
+  editor.pointer(0,0);
+  editor.input('title','Saved score');
+  editor.press('save');
+  editor.press('new');
+  let resolveFile;
+  const clean=editor.run('sheetImportMusicXML')({size:35,text:()=>new Promise(resolve=>{resolveFile=resolve})});
+  editor.control('project-list').find(node=>node.textContent==='Open').fire('click');
+  resolveFile('<score-partwise/>');
+  await clean;
+  assert.equal(parseCount,0);
+  assert.equal(editor.control('title').value,'Saved score');
+  assert.equal(editor.notes().length,1);
+});
+
+test('an unreadable file reports the problem and leaves the sheet intact', async () => {
+  const editor=createEditor();
+  editor.pointer(0,0);
+  const before=editor.notes();
+  await editor.run('sheetImportMusicXML')({size:35,text:async()=>{throw new Error('File read failed')}});
+  assert.match(editor.control('status').textContent,/Could not import MusicXML.*File read failed/);
+  assert.deepEqual(editor.notes(),before);
+});
+
+test('saving keeps unrecognized projects and leaves an unreadable store untouched', () => {
+  const editor=createEditor();
+  const key=editor.run('sheetProjectsStorageKey');
+  const old={id:'old',instrument:'old-instrument',notes:[{legacyMark:'retain'}]};
+  editor.storage.set(key,JSON.stringify([old]));
+  editor.pointer(0,0);
+  editor.press('save');
+  assert.deepEqual(JSON.parse(editor.storage.get(key)).find(project=>project.id==='old'),old);
+  editor.storage.set(key,'incomplete legacy data');
+  editor.press('save');
+  assert.equal(editor.storage.get(key),'incomplete legacy data');
+  assert.match(editor.control('status').textContent,/existing sheet data could not be read/);
+});
+
+test('print systems use the score and stay the same when display zoom changes', () => {
+  const editor=createEditor();
+  editor.pointer(0,0);
+  editor.pointer(4,1);
+  editor.pointer(8,2);
+  const description=()=>{
+    const pages=editor.run('sheetBuildPrintPages()');
+    return pages.children.map(system=>({
+      viewBox:system.attrs.viewBox,
+      measures:system.findAll(node=>node.classes.has('sheet-measure-number')).map(node=>node.textContent),
+      notes:system.findAll(node=>node.classes.has('sheet-note')).length,
+    }));
+  };
+  const before=description();
+  assert.deepEqual(before.map(system=>system.notes),[2,1]);
+  editor.viewport.clientWidth=600;
+  editor.input('zoom',150).fire('input');
+  assert.equal(editor.run('sheetDisplayLayout().measuresPerSystem'),1);
+  assert.deepEqual(description(),before);
 });

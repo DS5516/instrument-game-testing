@@ -1,5 +1,12 @@
 # Instrument Testing Versions
 
+## Sheet creator repair, round 5 — Local saves, MusicXML, and printing (2026-11-21)
+
+- Discard stale imports after opening or editing a different score. Keep unrecognized legacy records and refuse to overwrite unreadable local saved data.
+- Preserve multiple MusicXML slurs, tie numbering across serialized voices, chord-member marks, nested accidental state, hairpin and tempo offsets, and double-dotted tempo values. Fall back to standard notation when optional imported metadata is invalid.
+- Build print systems from the score at a fixed paper layout rather than cloning the zoomed screen. Display errors when file reading or printing is unavailable.
+- Tested the import race, unreadable files and storage, print system construction, and MusicXML round trips, including metadata-free details. Actual browser print output was unavailable.
+
 ## Sheet creator repair, round 4 — Playback (2026-11-21)
 
 - Skip expired notes if a browser timer is late. Keep percussion in the session until its source ends so Pause and Stop release ringing sounds. Schedule pitched releases on the audio clock.

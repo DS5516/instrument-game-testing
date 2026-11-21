@@ -20,6 +20,7 @@
   const articulations = { staccato: 'staccato', tenuto: 'tenuto', accent: 'accent', marcato: 'strong-accent' };
   const alterationFor = { sharp: 1, flat: -1, natural: 0 };
   const accidentalFor = { '-1': 'flat', 0: 'natural', 1: 'sharp' };
+  const dotFactors = [1, 1.5, 1.75];
 
   function check(condition, message) {
     if (!condition) throw new Error(message);
@@ -46,7 +47,7 @@
 
   function inferValue(beats, triplet) {
     for (const baseBeats of typeForBeats.keys()) {
-      for (const [dots, multiplier] of [1, 1.5, 1.75].entries()) {
+      for (const [dots, multiplier] of dotFactors.entries()) {
         if (Math.abs(baseBeats * multiplier * (triplet ? 2 / 3 : 1) - beats) < 1e-6) return { baseBeats, dots };
       }
     }
@@ -109,17 +110,99 @@
     return order.indexOf(letter) < Math.abs(fifths) ? Math.sign(fifths) : 0;
   }
 
-  function direction(content, playback = '') {
-    return `<direction><direction-type>${content}</direction-type>${playback}</direction>`;
+  function applyAccidentalOnset(carry, onset) {
+    for (const [pitch, signs] of onset) {
+      if (signs.size === 1) carry.set(pitch, signs.values().next().value);
+      else carry.delete(pitch);
+    }
+    onset.clear();
   }
 
-  function tempoDirection(bpm) {
-    return direction(`<metronome><beat-unit>quarter</beat-unit><per-minute>${bpm}</per-minute></metronome>`, `<sound tempo="${bpm}"/>`);
+  function queueAccidental(onset, pitch, alteration) {
+    if (!onset.has(pitch)) onset.set(pitch, new Set());
+    onset.get(pitch).add(alteration);
+  }
+
+  function direction(content, playback = '', offset = 0) {
+    const relative = offset ? `<offset${playback ? ' sound="yes"' : ''}>${offset}</offset>` : '';
+    return `<direction><direction-type>${content}</direction-type>${relative}${playback}</direction>`;
+  }
+
+  function tempoDirection(bpm, offset = 0) {
+    return direction(`<metronome><beat-unit>quarter</beat-unit><per-minute>${bpm}</per-minute></metronome>`, `<sound tempo="${bpm}"/>`, offset);
+  }
+
+  function arrangeDirections(notes, measures, measureTicks) {
+    const byTick = new Map();
+    for (const note of [...notes].sort((a, b) => a.beat - b.beat || a.step - b.step)) {
+      if (!note.tempo && !note.dynamic && !note.hairpin) continue;
+      const tick = Math.round(note.beat * divisions), marks = byTick.get(tick) || {};
+      for (const kind of ['tempo', 'dynamic', 'hairpin']) if (note[kind]) marks[kind] = note[kind];
+      byTick.set(tick, marks);
+    }
+    function add(tick, order, markup, endOfMeasure = false) {
+      const bar = Math.floor((tick - (endOfMeasure && tick % measureTicks === 0 ? 1 : 0)) / measureTicks);
+      const offset = tick - bar * measureTicks;
+      measures[bar].directions.push({ offset, order, xml: markup(offset) });
+    }
+    let nextDynamic = Infinity, nextHairpin = Infinity;
+    for (const [tick, marks] of [...byTick].reverse()) {
+      if (marks.tempo) add(tick, 1, offset => tempoDirection(marks.tempo, offset));
+      if (marks.dynamic) add(tick, 2, offset => direction(`<dynamics><${marks.dynamic}/></dynamics>`, '', offset));
+      if (marks.hairpin) {
+        const nextBarline = (Math.floor(tick / measureTicks) + 1) * measureTicks;
+        const end = Math.min(nextHairpin, Number.isFinite(nextDynamic) ? nextDynamic : nextBarline);
+        add(tick, 3, offset => direction(`<wedge type="${marks.hairpin}"/>`, '', offset));
+        add(end, 0, offset => direction('<wedge type="stop"/>', '', offset), true);
+        nextHairpin = tick;
+      }
+      if (marks.dynamic) nextDynamic = tick;
+    }
+  }
+
+  function exportedLinks(notes) {
+    const byId = new Map(notes.map(note => [note.id, note]));
+    const possibleTies = new Map(), incomingSlurs = new Map(), outgoingSlurs = new Set();
+    const addIncoming = (map, target, source) => {
+      if (!map.has(target)) map.set(target, []);
+      map.get(target).push(source);
+    };
+    for (const source of notes) {
+      if (source.rest) continue;
+      const tie = byId.get(source.tieTo);
+      if (tie && !tie.rest && tie.beat > source.beat && tie.step === source.step
+        && Math.abs(source.beat + source.durationBeats - tie.beat) < 1e-7) {
+        addIncoming(possibleTies, tie.id, source.id);
+      }
+      const slur = byId.get(source.slurTo);
+      if (slur && !slur.rest && Math.round(slur.beat * divisions) > Math.round(source.beat * divisions)) {
+        outgoingSlurs.add(source.id);
+        addIncoming(incomingSlurs, slur.id, source.id);
+      }
+    }
+    return { byId, possibleTies, incomingSlurs, outgoingSlurs };
+  }
+
+  function numberSlurs(measures, incomingSlurs, outgoingSlurs) {
+    const numbers = new Map(), active = new Set();
+    for (const measure of measures) {
+      for (const { note, first } of measure.notes) {
+        if (!first) continue;
+        for (const source of incomingSlurs.get(note.id) || []) active.delete(numbers.get(source));
+        if (!outgoingSlurs.has(note.id)) continue;
+        let number = 1;
+        while (active.has(number)) number++;
+        check(number <= 16, 'MusicXML supports up to 16 simultaneous slurs.');
+        active.add(number);
+        numbers.set(note.id, number);
+      }
+    }
+    return numbers;
   }
 
   function melodicMarkings(pieces, beats, beatType) {
     const beams = new Map(), triplets = new Map();
-    const groupLength = divisions * 4 / beatType * (beatType === 8 && beats > 3 && beats % 3 === 0 ? 3 : 1);
+    const groupLength = divisions * 4 / beatType * (beatType >= 8 && beats >= 6 && beats % 3 === 0 ? 3 : 1);
     for (const voice of [1, 2]) {
       const voicePieces = pieces.filter(piece => (piece.note.voice || 1) === voice);
       const primary = voicePieces.filter((piece, index) => {
@@ -143,7 +226,7 @@
           beams.set(piece, markup);
         }
         if (piece.first && piece.last && piece.note.triplet) {
-          if (group.length && !contiguous(group.at(-1), piece)) group = [];
+          if (group.length && (!contiguous(group.at(-1), piece) || group.at(-1).duration !== piece.duration)) group = [];
           group.push(piece);
           if (group.length === 3) {
             triplets.set(group[0], '<tuplet type="start"/>');
@@ -162,32 +245,35 @@
     const source = [...score.notes].sort((a, b) => a.beat - b.beat || (a.voice || 1) - (b.voice || 1) || a.step - b.step);
     const lastTick = Math.max(0, ...source.map(note => Math.max(Math.round(note.beat * divisions) + 1, Math.round((note.beat + note.durationBeats) * divisions))));
     const measureCount = Math.max(1, Math.ceil(lastTick / measureTicks));
-    const measures = Array.from({ length: measureCount }, () => ({ notes: [], repeatStart: false, repeatEnd: false, ending: 0 }));
-    const incomingTies = new Map(source.filter(note => note.tieTo).map(note => [note.tieTo, note.id]));
-    const incomingSlurs = new Map(source.filter(note => note.slurTo).map(note => [note.slurTo, note.id]));
-    const slurNumbers = new Map(), activeSlurs = new Set();
-    for (const note of source) {
-      activeSlurs.delete(slurNumbers.get(incomingSlurs.get(note.id)));
-      if (!note.slurTo) continue;
-      const number = Array.from({ length: 16 }, (_, index) => index + 1).find(candidate => !activeSlurs.has(candidate));
-      check(number, 'MusicXML supports up to 16 simultaneous slurs.');
-      activeSlurs.add(number); slurNumbers.set(note.id, number);
-    }
-    const resolved = new Map(), carry = new Map();
-    let lastMeasure = -1;
+    const measures = Array.from({ length: measureCount }, () => ({ notes: [], directions: [], repeatStart: false, repeatEnd: false, ending: 0 }));
+    const { byId, possibleTies, incomingSlurs, outgoingSlurs } = exportedLinks(source);
+    const resolved = new Map(), carry = new Map(), onset = new Map(), incomingTies = new Map(), outgoingTies = new Map();
+    arrangeDirections(source, measures, measureTicks);
+    let lastMeasure = -1, lastTickAtOnset = -1;
     for (const [index, note] of source.entries()) {
       const start = Math.round(note.beat * divisions), end = Math.max(start + 1, Math.round((note.beat + note.durationBeats) * divisions));
       const home = Math.floor(start / measureTicks);
       const measure = measures[home];
-      if (home !== lastMeasure) { carry.clear(); lastMeasure = home; }
+      if (home !== lastMeasure) {
+        carry.clear();
+        onset.clear();
+        lastMeasure = home;
+      } else if (start !== lastTickAtOnset) applyAccidentalOnset(carry, onset);
+      lastTickAtOnset = start;
       measure.repeatStart ||= !!note.repeatStart;
       measure.repeatEnd ||= !!note.repeatEnd;
       measure.ending ||= note.ending || 0;
       const pitch = pitchAtStep(note.step, score.clef), pitchKey = pitch.letter + pitch.octave;
-      const inherited = resolved.get(incomingTies.get(note.id));
-      const alter = alterationFor[note.accidental] ?? (inherited?.step === note.step ? inherited.alter : undefined) ?? carry.get(pitchKey) ?? keyAlteration(pitch.letter, score.keySignature);
-      if (note.accidental !== 'none') carry.set(pitchKey, alter);
-      resolved.set(note.id, { step: note.step, alter });
+      const explicit = alterationFor[note.accidental];
+      const tieSources = possibleTies.get(note.id)?.filter(id => resolved.has(id) && (explicit === undefined || resolved.get(id) === explicit)) || [];
+      const tieSource = tieSources.find(id => (byId.get(id).voice || 1) === (note.voice || 1)) ?? tieSources[0];
+      if (tieSource !== undefined) {
+        incomingTies.set(note.id, tieSource);
+        outgoingTies.set(tieSource, note.id);
+      }
+      const alter = explicit ?? resolved.get(tieSource) ?? carry.get(pitchKey) ?? keyAlteration(pitch.letter, score.keySignature);
+      if (!note.rest && explicit !== undefined) queueAccidental(onset, pitchKey, alter);
+      resolved.set(note.id, alter);
       for (let cursor = start; cursor < end;) {
         const bar = Math.floor(cursor / measureTicks), local = cursor - bar * measureTicks;
         const duration = Math.min(end - cursor, measureTicks - local);
@@ -196,6 +282,10 @@
         cursor += duration;
       }
     }
+    for (const measure of measures) {
+      measure.notes.sort((a, b) => a.local - b.local || (a.note.voice || 1) - (b.note.voice || 1) || a.duration - b.duration || a.index - b.index);
+    }
+    const slurNumbers = numberSlurs(measures, incomingSlurs, outgoingSlurs);
     const measuresXml = measures.map((measure, measureIndex) => {
       let content = '';
       if (!measureIndex) {
@@ -205,8 +295,9 @@
       }
       if (measure.repeatStart || measure.ending) content += `<barline location="left">${measure.ending ? `<ending number="${measure.ending}" type="start"/>` : ''}${measure.repeatStart ? '<repeat direction="forward"/>' : ''}</barline>`;
       if (!measureIndex) content += tempoDirection(score.bpm);
-      let cursor = 0, previous = null, wedge = false;
-      const pieces = measure.notes.sort((a, b) => a.local - b.local || (a.note.voice || 1) - (b.note.voice || 1) || a.duration - b.duration || a.index - b.index);
+      content += measure.directions.sort((a, b) => a.offset - b.offset || a.order - b.order).map(mark => mark.xml).join('');
+      let cursor = 0, previous = null;
+      const pieces = measure.notes;
       const { beams, triplets } = melodicMarkings(pieces, beats, beatType);
       for (const piece of pieces) {
         const { note, pitch, alter, local, duration, first, last } = piece;
@@ -217,30 +308,33 @@
           content += `<${movement}><duration>${Math.abs(local - cursor)}</duration></${movement}>`;
           cursor = local;
         }
-        if (wedge && !chord) { content += direction('<wedge type="stop"/>'); wedge = false; }
-        if (!chord && first && note.tempo) content += tempoDirection(note.tempo);
-        if (!chord && first && note.dynamic) content += direction(`<dynamics><${note.dynamic}/></dynamics>`);
-        if (!chord && first && note.hairpin) { content += direction(`<wedge type="${note.hairpin}"/>`); wedge = true; }
         const value = first && last ? note : inferValue(duration / divisions, false);
         const type = value && typeForBeats.get(value.baseBeats);
         const displayedPitch = note.rest ? '<rest/>' : `<pitch><step>${pitch.letter}</step>${alter ? `<alter>${alter}</alter>` : ''}<octave>${pitch.octave}</octave></pitch>`;
-        const tieKinds = [];
-        if (!note.rest && (!first || incomingTies.has(note.id))) tieKinds.push('stop');
-        if (!note.rest && (!last || note.tieTo)) tieKinds.push('start');
-        let markings = tieKinds.map(kind => `<tied type="${kind}"/>`).join('');
-        if (first && incomingSlurs.has(note.id)) markings += `<slur type="stop" number="${slurNumbers.get(incomingSlurs.get(note.id))}"/>`;
-        if (first && note.slurTo) markings += `<slur type="start" number="${slurNumbers.get(note.id)}"/>`;
+        const tieMarks = [];
+        if (!note.rest) {
+          const from = byId.get(incomingTies.get(note.id)), to = byId.get(outgoingTies.get(note.id));
+          if (!first || from) {
+            const sourceVoice = from?.voice || 1;
+            tieMarks.push(['stop', first && sourceVoice !== voice ? sourceVoice : 0]);
+          }
+          if (!last || to) tieMarks.push(['start', last && (to?.voice || 1) !== voice ? voice : 0]);
+        }
+        let markings = tieMarks.map(([kind, number]) => `<tied type="${kind}"${number ? ` number="${number}"` : ''}/>`).join('');
+        if (first) {
+          for (const sourceId of incomingSlurs.get(note.id) || []) markings += `<slur type="stop" number="${slurNumbers.get(sourceId)}"/>`;
+          if (slurNumbers.has(note.id)) markings += `<slur type="start" number="${slurNumbers.get(note.id)}"/>`;
+        }
         markings += triplets.get(piece) || '';
         if (first && note.articulation === 'fermata') markings += '<fermata/>';
         const articulation = first && articulations[note.articulation];
         if (articulation) markings += `<articulations><${articulation}/></articulations>`;
         const accidental = !note.rest && first && note.accidental !== 'none' ? `<accidental>${note.accidental}</accidental>` : '';
         const triplet = first && last && note.triplet ? '<time-modification><actual-notes>3</actual-notes><normal-notes>2</normal-notes></time-modification>' : '';
-        content += `<note>${chord ? '<chord/>' : ''}${displayedPitch}<duration>${duration}</duration>${tieKinds.map(kind => `<tie type="${kind}"/>`).join('')}<voice>${voice}</voice>${type ? `<type>${type}</type>${'<dot/>'.repeat(value.dots || 0)}` : ''}${accidental}${triplet}${beams.get(piece) || ''}${markings ? `<notations>${markings}</notations>` : ''}</note>`;
+        content += `<note>${chord ? '<chord/>' : ''}${displayedPitch}<duration>${duration}</duration>${tieMarks.map(([kind]) => `<tie type="${kind}"/>`).join('')}<voice>${voice}</voice>${type ? `<type>${type}</type>${'<dot/>'.repeat(value.dots || 0)}` : ''}${accidental}${triplet}${beams.get(piece) || ''}${markings ? `<notations>${markings}</notations>` : ''}</note>`;
         if (!chord) cursor += duration;
         previous = piece;
       }
-      if (wedge) content += direction('<wedge type="stop"/>');
       if (cursor < measureTicks) content += `<forward><duration>${measureTicks - cursor}</duration></forward>`;
       if (measure.repeatEnd || measure.ending) content += `<barline location="right">${measure.ending ? `<ending number="${measure.ending}" type="stop"/>` : ''}${measure.repeatEnd ? '<repeat direction="backward"/>' : ''}</barline>`;
       return `<measure number="${measureIndex + 1}">${content}</measure>`;
@@ -281,11 +375,12 @@
       let saved;
       try { saved = JSON.parse(field.textContent); } catch { /* Use the standard notation below. */ }
       if (saved?.score && originalPart && saved.hash === hashScore(originalPart)) {
-        return cleanProject({ ...saved.score, title, composer, instrument });
+        try { return cleanProject({ ...saved.score, title, composer, instrument }); }
+        catch { /* Optional editor metadata should not make a valid MusicXML score unreadable. */ }
       }
     }
 
-    const notes = [], tieStarts = new Map(), slurStarts = new Map();
+    const notes = [], openSlurs = new Map(), writtenPitches = new Map();
     const measures = children(part, 'measure');
     check(measures.length > 0 && measures.length <= maxMeasures, 'MusicXML supports one to 1,000 measures.');
     let clef = 'treble', keySignature = 'C', timeSignature = '4/4', bpm = 100;
@@ -323,13 +418,24 @@
       }
     }
 
+    function addTempo(tempo, beat) {
+      check(Number.isFinite(tempo) && tempo > 0, 'Invalid MusicXML tempo marking.');
+      if (!installedTempo && Math.abs(beat) < 1e-6) {
+        bpm = tempo;
+        installedTempo = true;
+      } else directions.push({ beat, tempo });
+    }
+
     function readDirection(element, cursor) {
-      const soundTempo = child(element, 'sound')?.getAttribute('tempo'), offset = Number(text(element, 'offset') || '0');
+      const sound = child(element, 'sound'), soundTempo = sound?.getAttribute('tempo');
+      const offsetNode = child(element, 'offset'), offset = Number(text(element, 'offset') || '0');
       check(Number.isFinite(offset), 'Invalid MusicXML direction offset.');
-      const beat = baseBeat + cursor + offset / beatDivisions;
-      const event = { beat };
-      if (soundTempo) {
-        event.tempo = Number(soundTempo);
+      const beat = baseBeat + cursor + offset / beatDivisions, event = { beat };
+      const hasSoundTempo = soundTempo !== undefined && soundTempo !== null;
+      if (hasSoundTempo) {
+        const soundOffset = Number(child(sound, 'offset')?.textContent ?? (offsetNode?.getAttribute('sound') === 'yes' ? offset : 0));
+        check(Number.isFinite(soundOffset), 'Invalid MusicXML sound offset.');
+        addTempo(Number(soundTempo), baseBeat + cursor + soundOffset / beatDivisions);
       }
       for (const typeNode of children(element, 'direction-type')) {
         const dynamicsNode = child(typeNode, 'dynamics');
@@ -339,10 +445,11 @@
           event.dynamic = symbol.localName;
         }
         const mark = child(typeNode, 'metronome');
-        if (!event.tempo && mark) {
+        if (!hasSoundTempo && mark) {
           const base = types[text(mark, 'beat-unit')], perMinute = Number(text(mark, 'per-minute'));
-          check(base && perMinute > 0, 'An unsupported MusicXML tempo mark was found.');
-          event.tempo = base * perMinute * (children(mark, 'beat-unit-dot').length ? 1.5 : 1);
+          const dots = children(mark, 'beat-unit-dot').length;
+          check(base && perMinute > 0 && dots <= 2, 'An unsupported MusicXML tempo mark was found.');
+          addTempo(base * perMinute * dotFactors[dots], beat);
         }
         const wedge = child(typeNode, 'wedge')?.getAttribute('type');
         if (wedge && wedge !== 'stop') {
@@ -350,15 +457,11 @@
           event.hairpin = wedge;
         }
       }
-      if (event.tempo) {
-        check(Number.isFinite(event.tempo) && event.tempo > 0, 'Invalid MusicXML tempo marking.');
-        if (!installedTempo && Math.abs(beat) < 1e-6) { bpm = event.tempo; installedTempo = true; delete event.tempo; }
-      }
-      if (event.tempo || event.dynamic || event.hairpin) directions.push(event);
+      if (event.dynamic || event.hairpin) directions.push(event);
     }
 
     for (const [measureIndex, measure] of measures.entries()) {
-      const firstIndex = notes.length, carry = new Map();
+      const firstIndex = notes.length;
       let cursor = 0, furthest = 0, previousStart = 0, previous = null;
       let repeatStart = false, repeatEnd = false, ending = 0;
       for (const element of Array.from(measure.children)) {
@@ -367,10 +470,9 @@
         if (tag === 'direction') { readDirection(element, cursor); continue; }
         if (tag === 'sound') {
           if (element.hasAttribute('tempo')) {
-            const tempo = Number(element.getAttribute('tempo'));
-            check(Number.isFinite(tempo) && tempo > 0, 'Invalid MusicXML tempo marking.');
-            if (!installedTempo && !baseBeat && !cursor) { bpm = tempo; installedTempo = true; }
-            else directions.push({ beat: baseBeat + cursor, tempo });
+            const offset = Number(text(element, 'offset') || '0');
+            check(Number.isFinite(offset), 'Invalid MusicXML sound offset.');
+            addTempo(Number(element.getAttribute('tempo')), baseBeat + cursor + offset / beatDivisions);
           }
           continue;
         }
@@ -418,24 +520,23 @@
         if (value?.baseBeats) Object.assign(note, value);
         else if (restNode?.getAttribute('measure') === 'yes') { note.baseBeats = 4; note.dots = 0; }
 
+        const notation = child(element, 'notations');
         if (!note.rest) {
           const pitch = child(element, 'pitch'), letter = text(pitch, 'step'), octave = Number(text(pitch, 'octave')), alter = Number(text(pitch, 'alter') || '0');
           check(pitch && letters.includes(letter) && text(pitch, 'octave') !== '' && Number.isInteger(octave) && [-1, 0, 1].includes(alter), 'Unpitched notes, microtonal pitches, and double accidentals are unsupported.');
           note.step = octave * 7 + letters.indexOf(letter) - (clef === 'bass' ? 18 : 30);
           const key = letter + octave, printed = text(element, 'accidental');
           check(!printed || Object.hasOwn(alterationFor, printed), 'An unsupported MusicXML accidental was found.');
-          if (printed || alter !== (carry.get(key) ?? keyAlteration(letter, keySignature))) {
-            note.accidental = printed || accidentalFor[alter];
-            carry.set(key, alter);
+          check(!printed || alterationFor[printed] === alter, 'A MusicXML accidental conflicts with its pitch.');
+          const ties = new Map(children(element, 'tie').map(item => [item.getAttribute('type'), '']));
+          const tied = children(notation, 'tied');
+          for (const kind of ['start', 'stop']) {
+            const edges = tied.filter(item => item.getAttribute('type') === kind);
+            check(edges.length <= 1, 'Multiple MusicXML tie endpoints on one note are unsupported.');
+            if (edges.length) ties.set(kind, edges[0].getAttribute('number') || '');
           }
-          const tieKey = `${voice}:${key}:${alter}`, ties = new Set([...children(element, 'tie'), ...children(child(element, 'notations'), 'tied')].map(item => item.getAttribute('type')));
-          if (ties.has('stop')) {
-            const source = tieStarts.get(tieKey);
-            check(source, 'A MusicXML tie ends without a matching start.'); source.tieTo = note.id; tieStarts.delete(tieKey);
-          }
-          if (ties.has('start')) tieStarts.set(tieKey, note);
+          writtenPitches.set(note.id, { letter, key, alter, printed, ties });
         }
-        const notation = child(element, 'notations');
         const articulationNodes = Array.from(child(notation, 'articulations')?.children || []);
         if (child(notation, 'fermata')) note.articulation = 'fermata';
         if (articulationNodes.length) {
@@ -444,10 +545,16 @@
         }
         for (const link of children(notation, 'slur')) {
           const number = link.getAttribute('number') || '1', type = link.getAttribute('type');
-          if (type === 'stop') {
-            const source = slurStarts.get(number);
-            check(source && !source.slurTo, 'A MusicXML slur ends without a matching or unique start.'); source.slurTo = note.id; slurStarts.delete(number);
-          } else if (type === 'start') slurStarts.set(number, note);
+          if (type !== 'start' && type !== 'stop') continue;
+          check(!note.rest, 'MusicXML slurs must connect pitched notes.');
+          const other = openSlurs.get(number);
+          if (!other) openSlurs.set(number, { note, type });
+          else {
+            const source = type === 'start' ? note : other.note, target = type === 'stop' ? note : other.note;
+            check(type !== other.type && source.beat < target.beat && !source.slurTo, 'A MusicXML slur does not have a unique later endpoint.');
+            source.slurTo = target.id;
+            openSlurs.delete(number);
+          }
         }
         const beam = children(element, 'beam').find(item => !item.hasAttribute('number') || item.getAttribute('number') === '1')?.textContent.trim();
         if (beam === 'begin') note.beamMode = 'break';
@@ -467,8 +574,43 @@
       }
       baseBeat += length;
     }
-    check(!tieStarts.size && !slurStarts.size, 'A MusicXML tie or slur is missing its endpoint.');
+    check(!openSlurs.size, 'A MusicXML slur is missing its endpoint.');
     const ordered = [...notes].sort((a, b) => a.beat - b.beat);
+    const tieStarts = new Map();
+    const carry = new Map(), onset = new Map(), length = meter(timeSignature).length;
+    let lastMeasure = -1, lastOnset = -Infinity;
+    for (const note of ordered) {
+      const measure = Math.floor((note.beat + 1e-7) / length);
+      if (measure !== lastMeasure) {
+        carry.clear();
+        onset.clear();
+        lastMeasure = measure;
+      } else if (Math.abs(note.beat - lastOnset) >= 1e-7) applyAccidentalOnset(carry, onset);
+      lastOnset = note.beat;
+      const pitch = writtenPitches.get(note.id);
+      if (!pitch) continue;
+      const tieKey = pitch.key + ':' + pitch.alter;
+      const starts = tieStarts.get(tieKey) || [];
+      if (pitch.ties.has('stop')) {
+        const number = pitch.ties.get('stop');
+        const candidates = starts.filter(start => Math.abs(start.note.beat + start.note.durationBeats - note.beat) < 1e-6
+          && (!number || start.number === number));
+        const sameVoice = candidates.filter(start => start.note.voice === note.voice);
+        const match = candidates.length === 1 ? candidates[0] : sameVoice.length === 1 ? sameVoice[0] : null;
+        check(match, 'A MusicXML tie ends without a matching, adjacent start.');
+        match.note.tieTo = note.id;
+        starts.splice(starts.indexOf(match), 1);
+      }
+      if (pitch.ties.has('start')) starts.push({ note, number: pitch.ties.get('start') });
+      if (starts.length) tieStarts.set(tieKey, starts);
+      else tieStarts.delete(tieKey);
+      if (!pitch.printed && pitch.ties.has('stop')) continue;
+      if (pitch.printed || pitch.alter !== (carry.get(pitch.key) ?? keyAlteration(pitch.letter, keySignature))) {
+        note.accidental = pitch.printed || accidentalFor[pitch.alter];
+        queueAccidental(onset, pitch.key, pitch.alter);
+      }
+    }
+    check(!tieStarts.size, 'A MusicXML tie is missing its endpoint.');
     for (const { beat, ...markings } of directions) {
       const note = ordered.find(item => Math.abs(item.beat - beat) < 1e-6);
       check(note, 'A MusicXML tempo or dynamic marking falls between notes.');

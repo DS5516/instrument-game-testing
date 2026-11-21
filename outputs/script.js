@@ -1372,6 +1372,12 @@ function sheetChordLayout(notes,layout){
   }
   return {headOffsets,chordStems,hasTwoVoices};
 }
+function sheetAppendHeading(svg,width){
+  const title=document.querySelector('#sheet-title').value.trim()||'Untitled song';
+  const composer=document.querySelector('#sheet-composer-name').value.trim();
+  svg.append(sheetSvgElement('text',{x:width/2,y:22,'text-anchor':'middle',class:'sheet-svg-title'},title));
+  if(composer)svg.append(sheetSvgElement('text',{x:width/2,y:42,'text-anchor':'middle',class:'sheet-svg-composer'},composer));
+}
 function renderSheetStaff({resetPitchRange=false}={}){
   const svg=document.querySelector('#sheet-staff');if(!svg)return;
   const focusedNoteId=document.activeElement?.closest?.('[data-sheet-note-id]')?.dataset.sheetNoteId;
@@ -1385,14 +1391,11 @@ function renderSheetStaff({resetPitchRange=false}={}){
   svg.setAttribute('width',width*zoom);
   svg.setAttribute('height',height*systemCount*zoom);
   svg.classList.toggle('hide-note-names',!document.querySelector('#sheet-note-names').checked);
-  const title=document.querySelector('#sheet-title').value.trim()||'Untitled song',composer=document.querySelector('#sheet-composer-name').value.trim();
+  const title=document.querySelector('#sheet-title').value.trim()||'Untitled song';
   for(let row=0;row<systemCount;row++){
     const system=sheetSvgElement('g',{class:'sheet-system',transform:`translate(0 ${row*height})`});
     system.append(sheetSvgElement('rect',{width,height,class:'sheet-page-background'}));
-    if(row===0){
-      system.append(sheetSvgElement('text',{x:width/2,y:22,'text-anchor':'middle',class:'sheet-svg-title'},title));
-      if(composer)system.append(sheetSvgElement('text',{x:width/2,y:42,'text-anchor':'middle',class:'sheet-svg-composer'},composer));
-    }
+    if(row===0)sheetAppendHeading(system,width);
     sheetRenderSystem(system,layout,resolved,row,marks);
     svg.append(system);
   }
@@ -1517,6 +1520,7 @@ function sheetSnapshot(clef=sheetClef()){
   return {notes:sheetClone(sheetNotes),clef};
 }
 function sheetPushUndo(clef){
+  sheetImportRequest++;
   sheetUndoStack.push(sheetSnapshot(clef));
   if(sheetUndoStack.length>80)sheetUndoStack.shift();
   sheetRedoStack=[];
@@ -1614,6 +1618,7 @@ function sheetPlaceAt(event){
 }
 function sheetApplyHistory(from,to,message){
   if(!from.length)return;
+  sheetImportRequest++;
   if(sheetPlaybackSession)stopSheetPlayback();
   sheetLinkDraft=null;
   to.push(sheetSnapshot());
@@ -1731,25 +1736,46 @@ function sheetPaste(){
   selectSheetNote(note.id,'Pasted');
   document.querySelector('#sheet-status').textContent='Note pasted.';
 }
+function isReadableSheetProject(project){
+  return !!(project&&typeof project.id==='string'&&Array.isArray(project.notes)&&Object.hasOwn(info,project.instrument));
+}
+function readSheetProjectStore(){
+  const saved=JSON.parse(localStorage.getItem(sheetProjectsStorageKey)??'[]');
+  if(!Array.isArray(saved))throw new Error('Saved sheet data is not a list.');
+  return saved;
+}
 function loadSheetProjects(){
-  try{const saved=JSON.parse(localStorage.getItem(sheetProjectsStorageKey)||'[]');return Array.isArray(saved)?saved.filter(project=>project&&typeof project.id==='string'&&Array.isArray(project.notes)&&info[project.instrument]).slice(0,50):[]}catch{return []}
+  try{return readSheetProjectStore().filter(isReadableSheetProject)}catch{return []}
 }
 function saveSheetProjects(projects){
-  if(projects.length>50)return false;
-  try{localStorage.setItem(sheetProjectsStorageKey,JSON.stringify(projects));return true}catch(error){console.warn('Sheet projects could not be saved in this browser',error);return false}
+  try{
+    const stored=readSheetProjectStore();
+    const next=[...projects,...stored.filter(project=>!isReadableSheetProject(project))];
+    if(next.length>50&&next.length>stored.length)return false;
+    localStorage.setItem(sheetProjectsStorageKey,JSON.stringify(next));
+    return true;
+  }catch(error){console.warn('Sheet projects could not be saved in this browser',error);return false}
 }
 function sheetProjectFromForm(){
-  const sourceRecordingId=loadSheetProjects().find(project=>project.id===sheetProjectId)?.sourceRecordingId;
-  return {id:sheetProjectId||'sheet-project-'+Date.now()+'-'+Math.random().toString(36).slice(2,8),title:document.querySelector('#sheet-title').value.trim().slice(0,48)||'Untitled song',composer:document.querySelector('#sheet-composer-name').value.trim().slice(0,36),instrument:sheetInstrument(),bpm:Number(document.querySelector('#sheet-tempo').value)||100,clef:sheetClef(),keySignature:document.querySelector('#sheet-key-signature').value,timeSignature:sheetTimeSignature(),notes:sheetClone(sheetNotes),sourceRecordingId,updatedAt:Date.now(),version:1};
+  const saved=loadSheetProjects().find(project=>project.id===sheetProjectId);
+  return {...saved,id:sheetProjectId||'sheet-project-'+Date.now()+'-'+Math.random().toString(36).slice(2,8),title:document.querySelector('#sheet-title').value.trim().slice(0,48)||'Untitled song',composer:document.querySelector('#sheet-composer-name').value.trim().slice(0,36),instrument:sheetInstrument(),bpm:Number(document.querySelector('#sheet-tempo').value)||100,clef:sheetClef(),keySignature:document.querySelector('#sheet-key-signature').value,timeSignature:sheetTimeSignature(),notes:sheetClone(sheetNotes),updatedAt:Date.now(),version:saved?.version??1};
 }
 function saveSheetProject(){
+  sheetImportRequest++;
+  try{readSheetProjectStore()}catch{
+    document.querySelector('#sheet-status').textContent='Could not save because the existing sheet data could not be read. Your saved data was kept.';
+    return false;
+  }
   const project=sheetProjectFromForm(),projects=loadSheetProjects(),index=projects.findIndex(item=>item.id===project.id);if(index>=0)projects[index]=project;else projects.unshift(project);
   if(!saveSheetProjects(projects)){document.querySelector('#sheet-status').textContent='Could not save · browser storage is full or unavailable.';return false}
   sheetProjectId=project.id;renderSheetProjectList();document.querySelector('#sheet-status').textContent='Saved “'+project.title+'” on this device.';return true;
 }
 function applySheetProject(project){
+  sheetImportRequest++;
   stopSheetPlayback();sheetProjectId=project.id;sheetNotes=sheetClone(project.notes);selectedSheetNoteId=null;sheetUndoStack=[];sheetRedoStack=[];
   sheetLinkDraft=null;
+  sheetDragState=null;
+  sheetReleaseClick=null;
   document.querySelector('#sheet-title').value=project.title||'Untitled song';document.querySelector('#sheet-composer-name').value=project.composer||'';document.querySelector('#sheet-instrument').value=info[project.instrument]?project.instrument:'piano';document.querySelector('#sheet-tempo').value=String(Math.max(20,Math.min(300,Number(project.bpm)||100)));document.querySelector('#sheet-tempo-value').textContent=document.querySelector('#sheet-tempo').value+' BPM';document.querySelector('#sheet-clef').value=project.clef==='bass'?'bass':'treble';document.querySelector('#sheet-key-signature').value=sheetKeySignatureCounts[project.keySignature]!==undefined?project.keySignature:'C';document.querySelector('#sheet-place-rest').checked=false;document.querySelector('#sheet-accidental').disabled=false;
   const meter=document.querySelector('#sheet-time-signature');
   const signature=/^(?:[1-9]|1[0-2])\/(?:2|4|8|16)$/.test(project.timeSignature)?project.timeSignature:'4/4';
@@ -1780,33 +1806,51 @@ async function sheetImportMusicXML(file){
   const request=++sheetImportRequest,status=document.querySelector('#sheet-status');
   try{
     if(file.size>2_000_000)throw new Error('Choose a MusicXML file smaller than 2 MB.');
-    const parsed=SheetMusicXML.importProject(await file.text());
+    const text=await file.text();
     if(request!==sheetImportRequest)return;
+    const parsed=SheetMusicXML.importProject(text);
     const project={...parsed,id:null};
     applySheetProject(project);
     status.textContent='Imported “'+project.title+'”. Choose Save sheet to save it as a new composition.';
   }catch(error){
-    if(request===sheetImportRequest)status.textContent=error.message;
+    if(request===sheetImportRequest)status.textContent='Could not import MusicXML. '+(error?.message||'The selected file could not be read.');
   }
 }
-function sheetPrint(){
-  const layout=sheetStaffGeometry();
-  const systems=document.querySelectorAll('#sheet-staff > .sheet-system');
+function sheetBuildPrintPages(){
+  const base=sheetStaffGeometry();
+  const measuresPerSystem=base.measureBeats<=4?2:1;
+  const layout={...base,measuresPerSystem,width:base.left+measuresPerSystem*base.measureWidth+24};
   const scoreMeasures=Math.max(1,...sheetNotes.map(note=>Math.ceil((note.beat+note.durationBeats-1e-7)/layout.measureBeats)));
   const systemLimit=Math.ceil(scoreMeasures/layout.measuresPerSystem);
-  document.querySelector('#sheet-print-preview')?.remove();
+  const notes=sheetResolveNotes(),marks=sheetMeasureMarks(notes,layout.measureBeats);
   const pages=document.createElement('section');
   pages.id='sheet-print-preview';
-  for(const system of [...systems].slice(0,systemLimit)){
+  for(let row=0;row<systemLimit;row++){
     const printed=sheetSvgElement('svg',{viewBox:`0 0 ${layout.width} ${layout.height}`,class:'sheet-printed-system'});
-    const content=system.cloneNode(true);
-    content.removeAttribute('transform');
-    printed.append(content);
+    printed.append(sheetSvgElement('rect',{width:layout.width,height:layout.height,class:'sheet-page-background'}));
+    if(row===0)sheetAppendHeading(printed,layout.width);
+    sheetRenderSystem(printed,layout,notes,row,marks);
     pages.append(printed);
   }
-  document.body.append(pages);
-  window.addEventListener('afterprint',()=>pages.remove(),{once:true});
-  window.print();
+  return pages;
+}
+function sheetPrint(){
+  const status=document.querySelector('#sheet-status');
+  if(typeof window==='undefined'||typeof window.print!=='function'){
+    status.textContent='Printing is unavailable in this browser.';
+    return;
+  }
+  let pages;
+  try{
+    document.querySelector('#sheet-print-preview')?.remove();
+    pages=sheetBuildPrintPages();
+    document.body.append(pages);
+    window.addEventListener('afterprint',()=>pages.remove(),{once:true});
+    window.print();
+  }catch{
+    pages?.remove();
+    status.textContent='Could not open print preview.';
+  }
 }
 function renderSheetProjectList(){
   const list=document.querySelector('#sheet-project-list');if(!list)return;list.replaceChildren();const projects=loadSheetProjects();
@@ -2035,6 +2079,7 @@ function setupSheetMusicEditor(){
     document.querySelector('#'+id).addEventListener('input',sheetRefreshHover);
   }
   ['sheet-title','sheet-composer-name','sheet-key-signature','sheet-time-signature','sheet-note-names'].forEach(id=>document.querySelector('#'+id).addEventListener('input',()=>{
+    if(id!=='sheet-note-names')sheetImportRequest++;
     if(sheetPlaybackSession&&['sheet-key-signature','sheet-time-signature'].includes(id))stopSheetPlayback();
     renderSheetStaff();
     if(id==='sheet-time-signature')updateSheetEditButtons();
@@ -2053,8 +2098,8 @@ function setupSheetMusicEditor(){
     const width=entries[0].contentRect.width;
     if(width>0&&width!==viewportWidth){viewportWidth=width;renderSheetStaff()}
   }).observe(svg.parentElement);
-  document.querySelector('#sheet-instrument').addEventListener('change',event=>{if(sheetPlaybackSession)stopSheetPlayback();if(event.target.value==='drums')document.querySelector('#sheet-clef').value='bass';sheetChangeClef()});
-  document.querySelector('#sheet-tempo').addEventListener('input',event=>{if(sheetPlaybackSession)stopSheetPlayback();document.querySelector('#sheet-tempo-value').textContent=event.target.value+' BPM'});
+  document.querySelector('#sheet-instrument').addEventListener('change',event=>{sheetImportRequest++;if(sheetPlaybackSession)stopSheetPlayback();if(event.target.value==='drums')document.querySelector('#sheet-clef').value='bass';sheetChangeClef()});
+  document.querySelector('#sheet-tempo').addEventListener('input',event=>{sheetImportRequest++;if(sheetPlaybackSession)stopSheetPlayback();document.querySelector('#sheet-tempo-value').textContent=event.target.value+' BPM'});
   document.querySelector('#sheet-apply-note').addEventListener('click',sheetUpdateSelectedTool);
   document.querySelector('#sheet-apply-expression').addEventListener('click',sheetApplyExpression);
   document.querySelector('#sheet-apply-measure').addEventListener('click',sheetApplyMeasure);

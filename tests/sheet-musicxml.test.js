@@ -38,6 +38,7 @@ class FixtureParser {
 }
 
 const makeNote = (id, beat, step, baseBeats, extra = {}) => ({ id, beat, step, baseBeats, durationBeats: baseBeats, dots: 0, accidental: 'none', rest: false, ...extra });
+const withoutEditorMetadata = xml => xml.replace(/<identification>[\s\S]*?<\/identification>/, '');
 
 test('exports standard timing, transposition, ties, slurs, dynamics, chords and voices', () => {
   const project = { title: 'A & B <study>', composer: 'D.', instrument: 'clarinet', bpm: 88, clef: 'bass', keySignature: 'F', timeSignature: '3/4', notes: [
@@ -123,4 +124,140 @@ test('preserves supported tempo and pitch when a bass clef position exceeds 36 s
   assert.equal(parsed.bpm, 240);
   assert.equal(parsed.notes[0].step, 51);
   assert.throws(() => exportProject({ clef: 'bass', notes: [makeNote('outside', 0, 52, 1)] }), /octave range/);
+});
+
+test('exports numbered endings for two slurs that share a target', () => {
+  const notes = [
+    makeNote('first', 0, 0, 1, { slurTo: 'last' }),
+    makeNote('second', 1, 2, 1, { slurTo: 'last' }),
+    makeNote('last', 2, 4, 1),
+  ];
+  const xml = withoutEditorMetadata(exportProject({ notes }));
+  assert.match(xml, /<slur type="stop" number="1"\/><slur type="stop" number="2"\/>/);
+  const imported = importProject(xml, FixtureParser).notes;
+  assert.equal(imported[0].slurTo, imported[2].id);
+  assert.equal(imported[1].slurTo, imported[2].id);
+});
+
+test('edited ties do not produce an invalid link or inherit a stale accidental in ordinary XML', () => {
+  const notes = [
+    makeNote('sharp', 0, 0, 1, { accidental: 'sharp', tieTo: 'after-gap' }),
+    makeNote('after-gap', 4, 0, 1),
+    makeNote('before-flattened', 5, 3, 1, { tieTo: 'flattened' }),
+    makeNote('flattened', 6, 3, 1, { accidental: 'flat' }),
+    makeNote('voice-1', 7, 2, 1, { tieTo: 'voice-2' }),
+    makeNote('voice-2', 8, 3, 1, { voice: 2 }),
+  ];
+  const xml = withoutEditorMetadata(exportProject({ notes }));
+  assert.doesNotMatch(xml, /<tie(?:d)? /);
+  const imported = importProject(xml, FixtureParser).notes;
+  assert.equal(imported[0].accidental, 'sharp');
+  assert.equal(imported[1].accidental, 'none');
+  assert.equal(imported[3].accidental, 'flat');
+});
+
+test('ordinary XML keeps tempo and dynamic marks entered on a chord member', () => {
+  const notes = [makeNote('c', 0, -2, 1), makeNote('e', 0, 0, 1, { tempo: 110, dynamic: 'p' })];
+  const xml = withoutEditorMetadata(exportProject({ bpm: 90, notes }));
+  const score = importProject(xml, FixtureParser);
+  assert.equal(score.bpm, 90);
+  assert.equal(score.notes[0].tempo, 110);
+  assert.equal(score.notes[0].dynamic, 'p');
+});
+
+test('imports double-dotted metronome units and rejects a conflicting printed accidental', () => {
+  const xml = `<score-partwise><part id="P1"><measure number="1">
+    <direction><direction-type><metronome>
+      <beat-unit>quarter</beat-unit><beat-unit-dot/><beat-unit-dot/><per-minute>80</per-minute>
+    </metronome></direction-type></direction>
+    <note><pitch><step>F</step><alter>1</alter><octave>4</octave></pitch><duration>1</duration><type>quarter</type><accidental>sharp</accidental></note>
+    </measure></part></score-partwise>`;
+  assert.equal(importProject(xml, FixtureParser).bpm, 140);
+  assert.throws(() => importProject(xml.replace('>sharp<', '>flat<'), FixtureParser), /accidental conflicts with its pitch/);
+});
+
+test('places a hairpin end at the next dynamic and marks later tempos as audible offsets', () => {
+  const notes = [
+    makeNote('start', 0, 0, 1, { dynamic: 'p', hairpin: 'crescendo' }),
+    makeNote('middle', 1, 1, 1, { tempo: 88 }),
+    makeNote('end', 3, 4, 1, { dynamic: 'f' }),
+  ];
+  const xml = withoutEditorMetadata(exportProject({ notes }));
+  assert.match(xml, /<wedge type="stop"\/><\/direction-type><offset>2880<\/offset>/);
+  assert.match(xml, /<offset sound="yes">960<\/offset><sound tempo="88"\/>/);
+  assert.deepEqual(importProject(xml, FixtureParser).notes.map(note => [note.beat, note.tempo, note.dynamic, note.hairpin]), [
+    [0, undefined, 'p', 'crescendo'], [1, 88, undefined, undefined], [3, undefined, 'f', undefined],
+  ]);
+});
+
+test('MusicXML accidentals take effect after simultaneous notes, irrespective of voice ordering', () => {
+  const notes = [
+    makeNote('v1', 0, 1, 1, { voice: 1, accidental: 'natural' }),
+    makeNote('v2', 0, 1, 1, { voice: 2 }),
+    makeNote('carried', 1, 1, 1, { voice: 1 }),
+    makeNote('flat', 2, 1, 1, { voice: 1, accidental: 'flat' }),
+    makeNote('sharp', 2, 1, 1, { voice: 2, accidental: 'sharp' }),
+    makeNote('conflict', 3, 1, 1, { voice: 1 }),
+  ];
+  const xml = withoutEditorMetadata(exportProject({ notes, keySignature: 'G' }));
+  const pitchAlterations = [...xml.matchAll(/<step>F<\/step>(?:<alter>(-?\d+)<\/alter>)?<octave>4<\/octave>/g)].map(match => Number(match[1] || 0));
+  assert.deepEqual(pitchAlterations, [0, 1, 0, -1, 1, 1]);
+  assert.deepEqual(importProject(xml, FixtureParser).notes.map(note => note.accidental), notes.map(note => note.accidental));
+});
+
+test('a tie across a barline carries its accidental only onto the tied note', () => {
+  const notes = [
+    makeNote('first', 3, 1, 1, { accidental: 'natural', tieTo: 'last' }),
+    makeNote('last', 4, 1, 1),
+    makeNote('other', 5, 1, 1),
+  ];
+  const xml = withoutEditorMetadata(exportProject({ notes, keySignature: 'G' }));
+  const imported = importProject(xml, FixtureParser).notes;
+  assert.equal(imported[0].tieTo, imported[1].id);
+  assert.deepEqual(imported.map(note => note.accidental), ['natural', 'none', 'none']);
+});
+
+test('ties across voices stay linked in ordinary XML, including simultaneous unisons', () => {
+  const notes = [
+    makeNote('one', 0, 1, 1, { voice: 1, tieTo: 'four' }),
+    makeNote('two', 0, 1, 1, { voice: 2, tieTo: 'three' }),
+    makeNote('three', 1, 1, 1, { voice: 1 }),
+    makeNote('four', 1, 1, 1, { voice: 2 }),
+  ];
+  const xml = withoutEditorMetadata(exportProject({ notes }));
+  const imported = importProject(xml, FixtureParser).notes;
+  assert.equal(imported[0].tieTo, imported[3].id);
+  assert.equal(imported[1].tieTo, imported[2].id);
+});
+
+test('accepts a tie and slur whose stop appears before its start in score-partwise document order', () => {
+  const xml = `<score-partwise><part id="P1"><measure number="1">
+    <forward><duration>1</duration></forward>
+    <note><pitch><step>F</step><octave>4</octave></pitch><duration>1</duration><voice>1</voice><notations><tied type="stop"/><slur type="stop" number="1"/></notations></note>
+    <backup><duration>2</duration></backup>
+    <note><pitch><step>F</step><octave>4</octave></pitch><duration>1</duration><voice>2</voice><notations><tied type="start"/><slur type="start" number="1"/></notations></note>
+  </measure></part></score-partwise>`;
+  const notes = importProject(xml, FixtureParser).notes;
+  assert.deepEqual(notes.map(note => [note.beat, note.voice]), [[1, 1], [0, 2]]);
+  assert.equal(notes[1].tieTo, notes[0].id);
+  assert.equal(notes[1].slurTo, notes[0].id);
+});
+
+test('slurs that exchange endpoints in the same onset get consistent document-order numbers', () => {
+  const notes = [
+    makeNote('begins-first', 0, 0, 1, { slurTo: 'ends-first' }),
+    makeNote('ends-first', 1, 0, 1),
+    makeNote('begins-second', 1, 2, .5, { slurTo: 'ends-second' }),
+    makeNote('ends-second', 2, 3, 1),
+  ];
+  const imported = importProject(withoutEditorMetadata(exportProject({ notes })), FixtureParser).notes;
+  assert.equal(imported[0].slurTo, imported[2].id);
+  assert.equal(imported[1].slurTo, imported[3].id);
+});
+
+test('corrupt optional metadata falls back to the actual MusicXML notation', () => {
+  const source = exportProject({ notes: [makeNote('original-id', 0, 0, 1)] });
+  const corrupt = source.replace('&quot;durationBeats&quot;:1', '&quot;durationBeats&quot;:null');
+  assert.notEqual(corrupt, source);
+  assert.deepEqual(importProject(corrupt, FixtureParser).notes.map(note => [note.id, note.durationBeats]), [['xml-note-1', 1]]);
 });

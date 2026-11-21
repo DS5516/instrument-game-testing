@@ -856,6 +856,7 @@ const sheetDynamicGains={pp:.42,p:.56,mp:.72,mf:1,f:1.22,ff:1.42};
 let sheetNotes=[],selectedSheetNoteId=null,copiedSheetNote=null,sheetProjectId=null,sheetUndoStack=[],sheetRedoStack=[],sheetPlaybackSession=null,sheetPreviewClientPoint=null,sheetDragState=null;
 let sheetLinkDraft=null;
 let sheetRenderedClef='treble';
+let sheetReleaseClick=null;
 function sheetClone(value){return JSON.parse(JSON.stringify(value))}
 function sheetInstrument(){return document.querySelector('#sheet-instrument').value}
 function sheetClef(){return document.querySelector('#sheet-clef').value}
@@ -1090,7 +1091,9 @@ function sheetNoteHitTarget(target){
   return hit?.closest('[data-sheet-note-id]')||null;
 }
 function sheetSnapPoint(event,layout=sheetDisplayLayout()){
-  const local=sheetStaffPoint(event);
+  return sheetSnapLocal(sheetStaffPoint(event),layout);
+}
+function sheetSnapLocal(local,layout,voice=Number(document.querySelector('#sheet-voice')?.value)||1,excludeId=null){
   if(!local||local.y<0||local.x<layout.left)return null;
   const row=Math.floor(local.y/layout.height),localY=local.y-row*layout.height;
   const column=Math.floor((local.x-layout.left)/layout.measureWidth);
@@ -1103,9 +1106,8 @@ function sheetSnapPoint(event,layout=sheetDisplayLayout()){
   const division=Number(document.querySelector('#sheet-grid')?.value)||(document.querySelector('#sheet-triplet')?.checked?12:8);
   const lastSlot=Math.ceil(layout.measureBeats*division-1e-7)-1;
   let beat=start+Math.max(0,Math.min(lastSlot,Math.round((rawBeat-start)*division)))/division;
-  const voice=Number(document.querySelector('#sheet-voice')?.value)||1;
   for(const note of sheetNotes){
-    if((note.voice||1)!==voice)continue;
+    if(note.id===excludeId||(note.voice||1)!==voice)continue;
     const next=note.beat+note.durationBeats;
     if(next>=start&&next<end-1e-7&&Math.abs(rawBeat-next)<Math.abs(rawBeat-beat))beat=next;
   }
@@ -1152,15 +1154,33 @@ function sheetCanMoveTo(note,beat,step,notes=sheetNotes){
     return other.beat+other.durationBeats<=beat+1e-7||beat+note.durationBeats<=other.beat+1e-7;
   });
 }
-function sheetDragTarget(event,local,note){
+function sheetDragTarget(local,note,drag){
   const layout=sheetDisplayLayout(),row=sheetBeatSystem(note.beat,layout);
-  const y=Math.max(0,Math.min(layout.height,local.y-row*layout.height));
+  const anchor={x:local.x-(drag.grabX||0),y:local.y-(drag.grabY||0)};
+  const y=Math.max(0,Math.min(layout.height,anchor.y-row*layout.height));
   const pitch=note.rest?note.step:Math.max(layout.minStep,Math.min(layout.maxStep,sheetYToStep(y,layout)));
-  const target=document.querySelector('#sheet-horizontal')?.checked&&sheetSnapPoint(event,layout);
+  const target=document.querySelector('#sheet-horizontal')?.checked&&sheetSnapLocal(anchor,layout,note.voice||1,note.id);
   const beat=target&&sheetCanMoveTo(note,target.beat,target.step)?target.beat:note.beat;
-  let step=note.rest?note.step:beat!==note.beat?target.step:pitch;
+  let step=note.rest?note.step:beat!==note.beat?target.step:target&&sheetBeatSystem(target.beat,layout)!==row?note.step:pitch;
   if(sheetNotes.some(other=>other.id!==note.id&&(other.voice||1)===(note.voice||1)&&sheetSameBeat(other.beat,beat)&&!other.rest&&other.step===step))step=note.step;
   return {x:sheetBeatToX(beat,layout),beat,step,excludeId:note.id};
+}
+function sheetHandlePointerDown(event){
+  if(sheetReleaseClick?.pointerId===event.pointerId)sheetReleaseClick=null;
+  if(sheetLinkDraft||sheetDragState||event.isPrimary===false||event.button!==0||document.querySelector('#sheet-eraser').checked)return;
+  const group=sheetNoteHitTarget(event.target);
+  const note=group&&sheetNotes.find(item=>item.id===group.dataset.sheetNoteId);
+  const local=note&&sheetStaffPoint(event);
+  if(!local)return;
+  const layout=sheetDisplayLayout();
+  const step=note.rest?(note.voice===2?2:4):note.step;
+  const y=sheetStepToY(step,layout)+sheetBeatSystem(note.beat,layout)*layout.height;
+  sheetDragState={id:note.id,pointerId:event.pointerId,startX:local.x,startY:local.y,moved:false,
+    grabX:local.x-sheetBeatToX(note.beat,layout),grabY:local.y-y};
+  try{event.currentTarget.setPointerCapture(event.pointerId)}catch{}
+}
+function sheetDragMoved(local,drag){
+  return Math.abs(local.y-drag.startY)>3||(document.querySelector('#sheet-horizontal')?.checked&&Math.abs(local.x-drag.startX)>3);
 }
 function sheetHandlePointerMove(event){
   if(sheetLinkDraft||document.querySelector('#sheet-eraser')?.checked){updateSheetPreview(null);return}
@@ -1169,21 +1189,31 @@ function sheetHandlePointerMove(event){
   if(sheetDragState){
     const note=sheetNotes.find(item=>item.id===sheetDragState.id);if(!note)return;
     if(event.pointerId!==sheetDragState.pointerId)return;
-    if(Math.abs(local.y-sheetDragState.startY)>3||(document.querySelector('#sheet-horizontal').checked&&Math.abs(local.x-sheetDragState.startX)>3))sheetDragState.moved=true;
-    if(sheetDragState.moved){updateSheetPreview(sheetDragTarget(event,local,note));return}
+    if(sheetDragMoved(local,sheetDragState))sheetDragState.moved=true;
+    updateSheetPreview(sheetDragState.moved?sheetDragTarget(local,note,sheetDragState):null);
+    return;
   }
   updateSheetPreview(sheetNoteHitTarget(event.target)?null:sheetSnapPoint(event));
 }
 function sheetHandlePointerUp(event){
   if(!sheetDragState||event.pointerId!==sheetDragState.pointerId)return;
   const drag=sheetDragState,note=sheetNotes.find(item=>item.id===drag.id),local=sheetStaffPoint(event);
-  if(note&&local&&(drag.moved||Math.abs(local.y-drag.startY)>3||(document.querySelector('#sheet-horizontal')?.checked&&Math.abs(local.x-drag.startX)>3)))drag.moved=true;
-  const target=note&&local&&drag.moved?sheetDragTarget(event,local,note):null;
+  if(note&&local&&sheetDragMoved(local,drag))drag.moved=true;
+  const target=note&&local&&drag.moved?sheetDragTarget(local,note,drag):null;
   sheetDragState=null;
-  if(target&&(target.step!==note.step||target.beat!==note.beat)){sheetPushUndo();note.step=target.step;note.beat=target.beat;selectedSheetNoteId=note.id;sheetPreviewClientPoint=null;renderSheetStaff();document.querySelector('#sheet-current-note').textContent='Moved '+sheetResolveNotes().find(item=>item.id===note.id)?.label;updateSheetEditButtons();return}
-  if(note&&!drag.moved){sheetPreviewClientPoint=null;sheetSelectOrLink(note.id);return}
-  if(sheetNoteHitTarget(event.target)){sheetPreviewClientPoint=null;updateSheetPreview(null);return}
-  sheetPreviewClientPoint={x:event.clientX,y:event.clientY};updateSheetPreview(sheetSnapPoint(event));
+  // Pointer capture makes the browser's follow-up click land on the staff itself.
+  sheetReleaseClick={pointerId:drag.pointerId};
+  sheetPreviewClientPoint=null;
+  updateSheetPreview(null);
+  if(!note)return;
+  if(target&&(target.step!==note.step||target.beat!==note.beat)){
+    sheetPushUndo();
+    if(sheetBeatMeasure(note.beat)!==sheetBeatMeasure(target.beat))sheetTransferMeasureMarks(note);
+    note.step=target.step;
+    note.beat=target.beat;
+    renderSheetStaff();
+    selectSheetNote(note.id,'Moved');
+  }else if(!drag.moved)sheetSelectOrLink(note.id);
 }
 function sheetSvgElement(tag,attributes={},text=''){
   const element=document.createElementNS('http://www.w3.org/2000/svg',tag);Object.entries(attributes).forEach(([name,value])=>element.setAttribute(name,String(value)));if(text!=='')element.textContent=text;return element;
@@ -1279,6 +1309,7 @@ function sheetChordLayout(notes,layout){
 }
 function renderSheetStaff({resetPitchRange=false}={}){
   const svg=document.querySelector('#sheet-staff');if(!svg)return;
+  const focusedNoteId=document.activeElement?.closest?.('[data-sheet-note-id]')?.dataset.sheetNoteId;
   sheetRenderedClef=sheetClef();
   const layout=sheetStaffGeometry(sheetNotes,resetPitchRange?null:sheetRenderedLayout);
   sheetRenderedLayout=layout;
@@ -1307,6 +1338,7 @@ function renderSheetStaff({resetPitchRange=false}={}){
   svg.append(preview);
   sheetRefreshHover();
   svg.setAttribute('aria-label',title+' sheet music staff · '+sheetClef()+' clef · '+sheetTimeSignature());
+  if(focusedNoteId)[...svg.querySelectorAll('.sheet-note')].find(group=>group.dataset.sheetNoteId===focusedNoteId)?.focus({preventScroll:true});
 }
 function sheetRefreshHover(){
   if(sheetDragState)return;
@@ -1385,14 +1417,7 @@ function sheetRenderSystem(svg,layout,allNotes,row,marks){
     }
     for(let dot=0;dot<dots;dot++)g.append(sheetSvgElement('circle',{cx:x+14+dot*7,cy:note.rest?y-7:y-(step%2===0?layout.stepHeight:0),r:2.3,class:'sheet-augmentation-dot'}));
     sheetRenderExpression(svg,g,note,x,y,layout);
-    g.addEventListener('pointerdown',event=>{
-      if(sheetLinkDraft||sheetDragState||document.querySelector('#sheet-eraser').checked||!sheetNoteHitTarget(event.target)||event.pointerType==='mouse'&&event.button!==0)return;
-      const local=sheetStaffPoint(event);if(!local)return;
-      selectedSheetNoteId=note.id;
-      sheetDragState={id:note.id,pointerId:event.pointerId,startX:local.x,startY:local.y,moved:false};
-      try{g.setPointerCapture(event.pointerId)}catch{}
-    });
-    g.addEventListener('click',event=>{if(sheetNoteHitTarget(event.target)!==g)return;event.stopPropagation();sheetSelectOrLink(note.id)});g.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();sheetSelectOrLink(note.id)}});svg.append(g);
+    g.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();sheetSelectOrLink(note.id)}});svg.append(g);
   });
   sheetRenderLinks(svg,allNotes,layout,row);
   sheetRenderTriplets(svg,resolved,layout);
@@ -1405,7 +1430,7 @@ function sheetRenderSystem(svg,layout,allNotes,row,marks){
     }
   }
 }
-function selectSheetNote(id){
+function selectSheetNote(id,action='Selected'){
   selectedSheetNoteId=id;
   const note=sheetNotes.find(item=>item.id===id),resolved=sheetResolveNotes().find(item=>item.id===id);
   if(note){
@@ -1416,9 +1441,12 @@ function selectSheetNote(id){
     document.querySelector('#sheet-voice').value=String(note.voice||1);
     document.querySelector('#sheet-accidental').value=note.accidental||'none';
     const label=note.rest?'rest':sheetInstrument()==='drums'?sheetDrumLabel(sheetDrumPartForMidi(resolved.midi)):resolved?.label;
-    document.querySelector('#sheet-current-note').textContent='Selected '+label+' · '+sheetNoteValueLabel(note);
+    document.querySelector('#sheet-current-note').textContent=action+' '+label+' · '+sheetNoteValueLabel(note);
   }
-  updateSheetEditButtons();renderSheetStaff();
+  for(const group of document.querySelectorAll('#sheet-staff .sheet-note'))group.classList.toggle('selected',group.dataset.sheetNoteId===id);
+  sheetPreviewClientPoint=null;
+  updateSheetPreview(null);
+  updateSheetEditButtons();
 }
 function sheetSnapshot(clef=sheetClef()){
   return {notes:sheetClone(sheetNotes),clef};
@@ -1477,6 +1505,7 @@ function sheetSelectOrLink(id){
   if(isTie)for(const note of sheetNotes)if(note.tieTo===id)delete note.tieTo;
   sheetNotes.find(note=>note.id===source.id)[property]=id;
   sheetLinkDraft=null;
+  renderSheetStaff();
   selectSheetNote(source.id);
 }
 function sheetRemoveLinks(){
@@ -1501,6 +1530,11 @@ function sheetPlacementConflict({beat,step,voice,rest}){
   return sheetNotes.some(note=>sheetSameBeat(note.beat,beat)&&(note.voice||1)===voice&&(note.rest||rest||note.step===step));
 }
 function sheetPlaceAt(event){
+  if(sheetDragState)return;
+  if(sheetReleaseClick&&event.detail!==0&&(event.pointerId==null||sheetReleaseClick.pointerId===event.pointerId)){
+    sheetReleaseClick=null;
+    return;
+  }
   const target=sheetNoteHitTarget(event.target);if(target){sheetSelectOrLink(target.getAttribute('data-sheet-note-id'));return}
   if(sheetLinkDraft||document.querySelector('#sheet-eraser').checked)return;
   const snapped=sheetSnapPoint(event);if(!snapped)return;
@@ -1547,7 +1581,7 @@ function sheetUpdateSelectedTool(){
   sheetPushUndo();delete note.triplet;Object.assign(note,sheetToolbarNoteValue());
   note.voice=Number(document.querySelector('#sheet-voice').value);
   if(!note.rest)note.accidental=document.querySelector('#sheet-accidental').value;
-  renderSheetStaff();document.querySelector('#sheet-status').textContent='Selected note updated.';
+  renderSheetStaff();selectSheetNote(note.id,'Updated');document.querySelector('#sheet-status').textContent='Selected note updated.';
 }
 function sheetApplyExpression(){
   const note=sheetNotes.find(item=>item.id===selectedSheetNoteId);
@@ -1578,18 +1612,59 @@ function sheetApplyMeasure(){
   renderSheetStaff();
   document.querySelector('#sheet-status').textContent='Updated measure '+(measure+1)+'.';
 }
+function sheetBeatMeasure(beat){return Math.floor((beat+1e-7)/sheetMeasureBeats())}
+function sheetTransferMeasureMarks(note){
+  const measure=sheetBeatMeasure(note.beat);
+  const replacement=sheetNotes.find(item=>item.id!==note.id&&sheetBeatMeasure(item.beat)===measure);
+  if(!replacement)return;
+  for(const property of ['repeatStart','repeatEnd','ending']){
+    if(note[property]!=null&&replacement[property]==null)replacement[property]=note[property];
+    delete note[property];
+  }
+}
 function sheetDeleteSelected(){
-  if(!selectedSheetNoteId)return;sheetPushUndo();sheetNotes=sheetNotes.filter(note=>note.id!==selectedSheetNoteId);
+  const selected=sheetNotes.find(note=>note.id===selectedSheetNoteId);
+  if(!selected)return;
+  sheetPushUndo();
+  sheetTransferMeasureMarks(selected);
+  sheetNotes=sheetNotes.filter(note=>note.id!==selected.id);
   for(const note of sheetNotes)for(const property of ['tieTo','slurTo'])if(note[property]===selectedSheetNoteId)delete note[property];
   selectedSheetNoteId=null;sheetLinkDraft=null;updateSheetEditButtons();renderSheetStaff();document.querySelector('#sheet-current-note').textContent='Note deleted.';
 }
 function sheetCopySelected(){
   const note=sheetNotes.find(item=>item.id===selectedSheetNoteId);if(!note)return;
   const {tieTo,slurTo,repeatStart,repeatEnd,ending,...copy}=note;
-  copiedSheetNote=sheetClone(copy);updateSheetEditButtons();document.querySelector('#sheet-status').textContent='Note copied. Select Paste to add another.';
+  const resolved=note.rest?null:sheetResolveNotes().find(item=>item.id===note.id);
+  const pitch=resolved?{letter:resolved.letter,octave:resolved.octave,midi:resolved.midi}:null;
+  copiedSheetNote={note:sheetClone(copy),pitch};
+  updateSheetEditButtons();document.querySelector('#sheet-status').textContent='Note copied. Select Paste to add another.';
 }
 function sheetPaste(){
-  if(!copiedSheetNote)return;sheetPushUndo();const selected=sheetNotes.find(item=>item.id===selectedSheetNoteId),nextBeat=selected?selected.beat+selected.durationBeats:sheetNotes.reduce((max,note)=>Math.max(max,note.beat+note.durationBeats),0),note={...sheetClone(copiedSheetNote),id:'sheet-'+Date.now()+'-'+Math.random().toString(36).slice(2,8),beat:nextBeat};sheetNotes.push(note);selectedSheetNoteId=note.id;updateSheetEditButtons();renderSheetStaff();document.querySelector('#sheet-status').textContent='Note pasted.';
+  if(!copiedSheetNote)return;
+  const selected=sheetNotes.find(item=>item.id===selectedSheetNoteId);
+  const nextBeat=selected?selected.beat+selected.durationBeats:sheetNotes.reduce((max,note)=>Math.max(max,note.beat+note.durationBeats),0);
+  const {note:copied,pitch}=copiedSheetNote;
+  const note={...sheetClone(copied),id:'sheet-'+Date.now()+'-'+Math.random().toString(36).slice(2,8),beat:nextBeat};
+  const voiceNotes=sheetNotes.filter(item=>(item.voice||1)===(note.voice||1)).sort((a,b)=>a.beat-b.beat);
+  for(const item of voiceNotes){
+    const end=item.beat+item.durationBeats;
+    if(end<=note.beat+1e-7)continue;
+    if(note.beat+note.durationBeats<=item.beat+1e-7)break;
+    note.beat=end;
+  }
+  if(pitch){
+    note.step=sheetStaffStepForPitch(pitch.letter,pitch.octave);
+    const pasted=sheetResolveNotes([...sheetNotes,note]).find(item=>item.id===note.id);
+    if(pasted.midi!==pitch.midi){
+      const difference=pitch.midi-sheetPitchAtStep(note.step).naturalMidi;
+      note.accidental=difference>0?'sharp':difference<0?'flat':'natural';
+    }
+  }
+  sheetPushUndo();
+  sheetNotes.push(note);
+  renderSheetStaff();
+  selectSheetNote(note.id,'Pasted');
+  document.querySelector('#sheet-status').textContent='Note pasted.';
 }
 function loadSheetProjects(){
   try{const saved=JSON.parse(localStorage.getItem(sheetProjectsStorageKey)||'[]');return Array.isArray(saved)?saved.filter(project=>project&&typeof project.id==='string'&&Array.isArray(project.notes)&&info[project.instrument]).slice(0,50):[]}catch{return []}
@@ -1845,6 +1920,7 @@ function sheetNewProject(){stopSheetPlayback('Ready · click the staff to add no
 function setupSheetMusicEditor(){
   const svg=document.querySelector('#sheet-staff');
   svg.addEventListener('click',sheetPlaceAt);
+  svg.addEventListener('pointerdown',sheetHandlePointerDown);
   svg.addEventListener('pointermove',sheetHandlePointerMove);
   svg.addEventListener('pointerup',sheetHandlePointerUp);
   for(const type of ['pointercancel','lostpointercapture'])svg.addEventListener(type,event=>{
@@ -1886,7 +1962,7 @@ function setupSheetMusicEditor(){
   document.querySelector('#sheet-export').addEventListener('click',sheetExportMusicXML);
   document.querySelector('#sheet-print').addEventListener('click',sheetPrint);
   document.querySelector('#composer-page').addEventListener('keydown',event=>{
-    if(event.target.closest('input,select,textarea,[contenteditable]'))return;
+    if(event.defaultPrevented||event.isComposing||event.altKey||event.target.closest('input,select,textarea,[contenteditable]'))return;
     const key=event.key.toLowerCase();
     if(key==='escape'&&sheetLinkDraft){sheetLinkDraft=null;updateSheetEditButtons()}
     if(event.ctrlKey||event.metaKey){

@@ -1,5 +1,11 @@
 # Instrument Testing Versions
 
+## Sheet creator repair, round 2 — Editing and dragging (2026-11-21)
+
+- Capture drags on the stable SVG and consume the release click so moving a note cannot create a duplicate. Keep the grab offset, selection, and keyboard focus usable through redraws and canceled gestures.
+- Keep copied pitches and accidental spellings across clef changes. Paste at a free position in the same voice, preserve measure markings when erasing an anchor note, and refresh the readout after a duration edit.
+- Added tests for drag release and cancellation, keyboard focus, pasted pitch and timing, repeat marks, and the edit readout.
+
 ## Sheet creator repair, round 1 — Staff geometry (2026-11-21)
 
 - Use the SVG's rendered layout for hit testing, the ghost note, and the playback cursor. A resize could previously change the number of measures computed by input before the visible SVG reflowed.

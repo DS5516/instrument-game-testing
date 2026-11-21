@@ -23,8 +23,8 @@ function extractFunction(name) {
 
 const editorFunctions = [
   'sheetClef', 'sheetStaffGeometry', 'sheetDisplayLayout', 'sheetStepToY', 'sheetYToStep',
-  'sheetLedgerSteps', 'sheetBeatToX', 'sheetBeatSystem', 'sheetStaffPoint', 'sheetSnapPoint',
-  'sheetHandlePointerUp', 'sheetDragTarget',
+  'sheetLedgerSteps', 'sheetBeatToX', 'sheetBeatSystem', 'sheetStaffPoint', 'sheetSnapPoint', 'sheetSnapLocal',
+  'sheetHandlePointerUp', 'sheetDragTarget', 'sheetDragMoved', 'sheetBeatMeasure',
 ].map(extractFunction).join('\n');
 
 const clefInput = { value: 'treble' };
@@ -42,6 +42,7 @@ const sandbox = {
   sheetRenderedLayout: null,
   selectedSheetNoteId: null,
   sheetDragState: null,
+  sheetReleaseClick: null,
   sheetPreviewClientPoint: null,
   sheetStaffStepHeight: 10,
   sheetStaffLineSpacing: 20,
@@ -49,7 +50,8 @@ const sandbox = {
   sheetResolveNotes: () => [{ id: 'dragged', label: 'C5' }],
   sheetPushUndo() {},
   renderSheetStaff() {},
-  updateSheetEditButtons() {},
+  updateSheetPreview() {},
+  selectSheetNote() {},
   sheetLetterOrder: ['C', 'D', 'E', 'F', 'G', 'A', 'B'],
   sheetSemitones: { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 },
 };

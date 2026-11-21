@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#071427">
   <title>Instrument Testing</title>
-  <link rel="stylesheet" href="style.css?v=0.5.0">
+  <link rel="stylesheet" href="style.css?v=0.6.0">
 </head>
 <body>
   <main class="app-shell">
@@ -59,8 +59,15 @@
           <label for="sheet-dots">Augmentation dots<select id="sheet-dots"><option value="0">None</option><option value="1">Dotted ·</option><option value="2">Double-dotted ··</option></select></label>
           <label for="sheet-accidental">Accidental<select id="sheet-accidental"><option value="none">Key signature</option><option value="sharp">Sharp ♯</option><option value="flat">Flat ♭</option><option value="natural">Natural ♮</option></select></label>
           <label class="sheet-rest-option" for="sheet-place-rest"><input id="sheet-place-rest" type="checkbox"> Place a rest</label>
-          <div class="sheet-edit-actions"><button id="sheet-undo" type="button">Undo</button><button id="sheet-redo" type="button">Redo</button><button id="sheet-copy" type="button">Copy</button><button id="sheet-paste" type="button">Paste</button><button id="sheet-delete-note" type="button">Delete</button></div>
+          <div class="sheet-edit-actions"><button id="sheet-apply-note" type="button" disabled>Apply to selected</button><button id="sheet-undo" type="button">Undo</button><button id="sheet-redo" type="button">Redo</button><button id="sheet-copy" type="button">Copy</button><button id="sheet-paste" type="button">Paste</button><button id="sheet-delete-note" type="button">Delete</button></div>
         </div>
+        <details class="sheet-advanced-options"><summary>Advanced notation</summary>
+          <div class="sheet-note-toolbar" aria-label="Beams, ties, and slurs">
+            <label for="sheet-beam">Beam with preceding note<select id="sheet-beam" disabled><option value="auto">Automatic</option><option value="join">Join</option><option value="break">Break</option></select></label>
+            <div class="sheet-edit-actions"><button id="sheet-tie" type="button" disabled>Add tie</button><button id="sheet-slur" type="button" disabled>Add slur</button><button id="sheet-remove-links" type="button" disabled>Remove ties and slurs</button></div>
+            <p id="sheet-link-hint" class="sheet-hint">Select a note to edit beams, ties, or slurs.</p>
+          </div>
+        </details>
         <p class="sheet-hint">Notes snap to thirty-second-note positions or to the end of a nearby note. Scroll sideways for later measures. Clarinet notes are written pitch and sound a whole step lower.</p>
         <div class="sheet-staff-viewport"><svg id="sheet-staff" role="img" aria-label="Clickable five-line music staff"></svg></div>
         <div class="sheet-playback-bar">
@@ -104,6 +111,6 @@
     <div id="achievement-toast" class="achievement-toast hidden" role="status" aria-live="polite"></div>
     <footer class="page-footer"><span>MADE FOR CURIOUS EARS</span><span>✳ &nbsp; SOUND ON FOR THE FULL EXPERIENCE</span></footer>
   </main>
-  <script src="script.js?v=0.5.0"></script>
+  <script src="script.js?v=0.6.0"></script>
 </body>
 </html>

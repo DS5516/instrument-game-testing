@@ -838,6 +838,7 @@ const sheetBassSharpOrder=[['F',3],['C',3],['G',3],['D',3],['A',2],['E',3],['B',
 const sheetDurationLabels={4:'Whole',2:'Half',1:'Quarter',0.5:'Eighth',0.25:'Sixteenth',0.125:'Thirty-second'},sheetStaffStepHeight=10,sheetStaffLineSpacing=20;
 const sheetDotMultipliers=[1,1.5,1.75];
 let sheetNotes=[],selectedSheetNoteId=null,copiedSheetNote=null,sheetProjectId=null,sheetUndoStack=[],sheetRedoStack=[],sheetPlaybackSession=null,sheetPreviewClientPoint=null,sheetDragState=null;
+let sheetLinkDraft=null;
 function sheetClone(value){return JSON.parse(JSON.stringify(value))}
 function sheetInstrument(){return document.querySelector('#sheet-instrument').value}
 function sheetClef(){return document.querySelector('#sheet-clef').value}
@@ -868,6 +869,58 @@ function sheetNoteValueLabel(note){
 function sheetFlagCount(baseBeats){
   return Math.max(0,Math.round(-Math.log2(baseBeats)));
 }
+function sheetSameBeat(a,b){
+  return Math.abs(a-b)<1e-7;
+}
+function sheetCanTie(source,target){
+  return !!(source&&target&&!source.rest&&!target.rest&&source.step===target.step
+    &&target.beat>source.beat
+    &&sheetSameBeat(source.beat+source.durationBeats,target.beat)
+    &&(target.accidental==null||target.accidental==='none'||source.midi===target.midi));
+}
+function sheetBeamGroups(notes,timeSignature){
+  const [count,denominator]=timeSignature.split('/').map(Number);
+  const unit=4/denominator,measureBeats=count*unit;
+  const groupBeats=denominator>=8&&count>=6&&count%3===0?unit*3:unit;
+  const groups=[];
+  let run=[];
+  const close=()=>{
+    if(run.length>1)groups.push(run);
+    run=[];
+  };
+  for(const note of notes){
+    const previous=run.at(-1);
+    if(note.rest||!sheetFlagCount(sheetReadNoteValue(note).baseBeats)){
+      close();
+      continue;
+    }
+    const measure=Math.floor((note.beat+1e-7)/measureBeats);
+    const previousMeasure=previous&&Math.floor((previous.beat+1e-7)/measureBeats);
+    const bucket=beat=>Math.floor((beat-measure*measureBeats+1e-7)/groupBeats);
+    if(previous&&(measure!==previousMeasure||note.beamMode==='break'
+      ||!sheetSameBeat(previous.beat+previous.durationBeats,note.beat)
+      ||(note.beamMode!=='join'&&bucket(previous.beat)!==bucket(note.beat))))close();
+    run.push(note);
+  }
+  close();
+  return groups;
+}
+function sheetPlaybackChains(notes){
+  const incoming=new Map(),byId=new Map(notes.map(note=>[note.id,note]));
+  for(const source of notes){
+    const target=byId.get(source.tieTo);
+    if(sheetCanTie(source,target)&&source.midi===target.midi&&!incoming.has(target.id))incoming.set(target.id,source.id);
+  }
+  return notes.filter(note=>!incoming.has(note.id)).map(note=>{
+    const members=[note];
+    let current=note;
+    while(current.tieTo&&incoming.get(current.tieTo)===current.id){
+      current=byId.get(current.tieTo);
+      members.push(current);
+    }
+    return {members,start:note.beat,end:current.beat+current.durationBeats};
+  });
+}
 function sheetPitchAtStep(step,clef=sheetClef()){
   const baseLetterIndex=clef==='bass'?4:2,baseOctave=clef==='bass'?2:4,total=baseLetterIndex+step,letterIndex=((total%7)+7)%7,octave=baseOctave+Math.floor(total/7),letter=sheetLetterOrder[letterIndex];
   return {letter,octave,naturalMidi:12*(octave+1)+sheetSemitones[letter]};
@@ -880,15 +933,19 @@ function sheetKeyAlterations(clef=sheetClef(),keySignature=document.querySelecto
   order.slice(0,Math.abs(count)).forEach(([letter])=>alterations[letter]=count>0?1:-1);return alterations;
 }
 function sheetResolveNotes(notes=sheetNotes,settings={}){
-  const clef=settings.clef||sheetClef(),keySignature=settings.keySignature||document.querySelector('#sheet-key-signature').value,timeSignature=settings.timeSignature||sheetTimeSignature(),timeParts=timeSignature.split('/').map(Number),measureBeats=timeParts[0]*4/timeParts[1],keyAlterations=sheetKeyAlterations(clef,keySignature),accidentalCarry=new Map(),resolved=[];let currentMeasure=-1;
+  const clef=settings.clef||sheetClef(),keySignature=settings.keySignature||document.querySelector('#sheet-key-signature').value,timeSignature=settings.timeSignature||sheetTimeSignature(),timeParts=timeSignature.split('/').map(Number),measureBeats=timeParts[0]*4/timeParts[1],keyAlterations=sheetKeyAlterations(clef,keySignature),accidentalCarry=new Map(),resolved=[],tieSources=new Map();let currentMeasure=-1;
   [...notes].sort((a,b)=>a.beat-b.beat||a.step-b.step).forEach(note=>{
     const measure=Math.floor(note.beat/measureBeats);if(measure!==currentMeasure){currentMeasure=measure;accidentalCarry.clear()}
     if(note.rest){resolved.push({...note,letter:null,octave:null,midi:null,label:'Rest'});return}
     const pitch=sheetPitchAtStep(note.step,clef),carryKey=pitch.letter+pitch.octave,explicit=note.accidental||'none';let alteration;
     if(explicit==='sharp')alteration=1;else if(explicit==='flat')alteration=-1;else if(explicit==='natural')alteration=0;else alteration=accidentalCarry.has(carryKey)?accidentalCarry.get(carryKey):(keyAlterations[pitch.letter]||0);
     if(explicit!=='none')accidentalCarry.set(carryKey,alteration);
+    const source=tieSources.get(note.id);
+    if(explicit==='none'&&sheetCanTie(source,note))alteration=source.midi-pitch.naturalMidi;
     const symbol=alteration===1?'♯':alteration===-1?'♭':'',label=pitch.letter+symbol+pitch.octave;
-    resolved.push({...note,letter:pitch.letter,octave:pitch.octave,midi:pitch.naturalMidi+alteration,label});
+    const result={...note,letter:pitch.letter,octave:pitch.octave,midi:pitch.naturalMidi+alteration,label};
+    resolved.push(result);
+    if(note.tieTo&&!tieSources.has(note.tieTo))tieSources.set(note.tieTo,result);
   });
   return resolved;
 }
@@ -962,15 +1019,58 @@ function sheetHandlePointerMove(event){
 function sheetHandlePointerUp(event){
   if(!sheetDragState)return;
   const drag=sheetDragState,note=sheetNotes.find(item=>item.id===drag.id),local=sheetStaffPoint(event);
-  if(note&&local&&Math.abs(local.y-drag.startY)>3){drag.moved=true;drag.nextStep=sheetYToStep(local.y,sheetStaffGeometry())}
+  if(note&&local&&(drag.moved||Math.abs(local.y-drag.startY)>3)){drag.moved=true;drag.nextStep=sheetYToStep(local.y,sheetStaffGeometry())}
   sheetDragState=null;
   if(note&&drag.moved&&Number.isInteger(drag.nextStep)&&drag.nextStep!==note.step){sheetPushUndo();note.step=drag.nextStep;selectedSheetNoteId=note.id;sheetPreviewClientPoint=null;renderSheetStaff();document.querySelector('#sheet-current-note').textContent='Moved '+sheetResolveNotes().find(item=>item.id===note.id)?.label;updateSheetEditButtons();return}
-  if(note&&!drag.moved){sheetPreviewClientPoint=null;selectSheetNote(note.id);return}
+  if(note&&!drag.moved){sheetPreviewClientPoint=null;sheetSelectOrLink(note.id);return}
   if(sheetNoteHitTarget(event.target)){sheetPreviewClientPoint=null;updateSheetPreview(null);return}
   sheetPreviewClientPoint={x:event.clientX,y:event.clientY};updateSheetPreview(sheetSnapPoint(event));
 }
 function sheetSvgElement(tag,attributes={},text=''){
   const element=document.createElementNS('http://www.w3.org/2000/svg',tag);Object.entries(attributes).forEach(([name,value])=>element.setAttribute(name,String(value)));if(text!=='')element.textContent=text;return element;
+}
+function sheetRenderBeams(svg,groups,layout){
+  const stems=new Map();
+  for(const group of groups){
+    const direction=group.reduce((sum,note)=>sum+note.step,0)/group.length<4?1:-1;
+    const ys=group.map(note=>sheetStepToY(note.step,layout));
+    const y=(direction===1?Math.min(...ys):Math.max(...ys))-direction*36;
+    const positions=group.map(note=>{
+      const stem={x:sheetBeatToX(note.beat,layout)+direction*8,y,direction,level:sheetFlagCount(sheetReadNoteValue(note).baseBeats)};
+      stems.set(note.id,stem);
+      return stem;
+    });
+    for(let index=0;index<positions.length;index++){
+      const stem=positions[index],previous=positions[index-1],next=positions[index+1];
+      for(let level=1;level<=stem.level;level++){
+        let endX;
+        if(next?.level>=level)endX=next.x;
+        else if(level>1&&!(previous?.level>=level))endX=stem.x+(next?1:-1)*9;
+        else continue;
+        const beamY=y+(level-1)*7*direction;
+        svg.append(sheetSvgElement('line',{x1:stem.x,y1:beamY,x2:endX,y2:beamY,class:'sheet-beam'}));
+      }
+    }
+  }
+  return stems;
+}
+function sheetRenderLinks(svg,notes,layout){
+  const byId=new Map(notes.map(note=>[note.id,note]));
+  for(const note of notes){
+    if(note.rest)continue;
+    for(const [mark,id] of [['tie',note.tieTo],['slur',note.slurTo]]){
+      const target=byId.get(id);
+      if(!target||target.rest||target.beat<=note.beat||(mark==='tie'&&(!sheetCanTie(note,target)||note.midi!==target.midi)))continue;
+      const x1=sheetBeatToX(note.beat,layout)+7,x2=sheetBeatToX(target.beat,layout)-7;
+      if(x2<=x1)continue;
+      const direction=mark==='slur'?-1:note.step<4?1:-1;
+      const y1=sheetStepToY(note.step,layout)+direction*(mark==='slur'?12:8);
+      const y2=sheetStepToY(target.step,layout)+direction*(mark==='slur'?12:8);
+      const lift=direction*(mark==='slur'?Math.min(42,18+(x2-x1)/6):11);
+      const span=(x2-x1)/3;
+      svg.append(sheetSvgElement('path',{d:`M ${x1} ${y1} C ${x1+span} ${y1+lift}, ${x2-span} ${y2+lift}, ${x2} ${y2}`,class:'sheet-'+mark}));
+    }
+  }
 }
 function renderSheetStaff(){
   const svg=document.querySelector('#sheet-staff');if(!svg)return;
@@ -992,6 +1092,7 @@ function renderSheetStaff(){
     if(measure<measureCount)svg.append(sheetSvgElement('text',{x:x+6,y:top-7,class:'sheet-measure-number'},String(measure+1)));
   }
   const resolved=sheetResolveNotes();
+  const beamStems=sheetRenderBeams(svg,sheetBeamGroups(resolved,sheetTimeSignature()),layout);
   resolved.forEach(note=>{
     const x=sheetBeatToX(note.beat,layout),step=note.rest?4:note.step,y=sheetStepToY(step,layout);
     const {baseBeats,dots}=sheetReadNoteValue(note),valueLabel=sheetNoteValueLabel(note);
@@ -1007,9 +1108,9 @@ function renderSheetStaff(){
       if(note.accidental&&note.accidental!=='none'){const symbol=note.accidental==='sharp'?'♯':note.accidental==='flat'?'♭':'♮';g.append(sheetSvgElement('text',{x:x-19,y:y+5,class:'sheet-accidental-symbol'},symbol))}
       g.append(sheetSvgElement('ellipse',{cx:x,cy:y,rx:9,ry:6,transform:'rotate(-18 '+x+' '+y+')',class:'sheet-notehead'+(baseBeats>=2?' hollow':'')}));
       if(baseBeats<4){
-        const direction=step<4?1:-1,stemX=x+direction*8,stemEnd=y-direction*36;
+        const beam=beamStems.get(note.id),direction=beam?.direction??(step<4?1:-1),stemX=beam?.x??x+direction*8,stemEnd=beam?.y??y-direction*36;
         g.append(sheetSvgElement('line',{x1:stemX,y1:y-direction,x2:stemX,y2:stemEnd,class:'sheet-stem'}));
-        for(let flag=0;flag<sheetFlagCount(baseBeats);flag++){
+        for(let flag=0;!beam&&flag<sheetFlagCount(baseBeats);flag++){
           const flagY=stemEnd+flag*8*direction;
           const d=`M ${stemX} ${flagY} C ${stemX+direction*15} ${flagY+6*direction} ${stemX+direction*16} ${flagY+16*direction} ${stemX+direction*8} ${flagY+20*direction}`;
           g.append(sheetSvgElement('path',{d,class:'sheet-flag'}));
@@ -1019,9 +1120,10 @@ function renderSheetStaff(){
       g.append(sheetSvgElement('rect',{x:labelX,y:labelY,width:labelWidth,height:15,rx:4,class:'sheet-note-label-bg'}),sheetSvgElement('text',{x:labelX+4,y:y+3,class:'sheet-note-label'},displayLabel));
     }
     for(let dot=0;dot<dots;dot++)g.append(sheetSvgElement('circle',{cx:x+14+dot*7,cy:note.rest?y-7:y-(step%2===0?layout.stepHeight:0),r:2.3,class:'sheet-augmentation-dot'}));
-    g.addEventListener('pointerdown',event=>{if(note.rest||!sheetNoteHitTarget(event.target)||event.pointerType==='mouse'&&event.button!==0)return;const local=sheetStaffPoint(event);if(!local)return;selectedSheetNoteId=note.id;sheetDragState={id:note.id,startY:local.y,nextStep:note.step,moved:false};try{g.setPointerCapture(event.pointerId)}catch{}});
-    g.addEventListener('click',event=>{if(sheetNoteHitTarget(event.target)!==g)return;event.stopPropagation();selectSheetNote(note.id)});g.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();selectSheetNote(note.id)}});svg.append(g);
+    g.addEventListener('pointerdown',event=>{if(sheetLinkDraft||note.rest||!sheetNoteHitTarget(event.target)||event.pointerType==='mouse'&&event.button!==0)return;const local=sheetStaffPoint(event);if(!local)return;selectedSheetNoteId=note.id;sheetDragState={id:note.id,startY:local.y,nextStep:note.step,moved:false};try{g.setPointerCapture(event.pointerId)}catch{}});
+    g.addEventListener('click',event=>{if(sheetNoteHitTarget(event.target)!==g)return;event.stopPropagation();sheetSelectOrLink(note.id)});g.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();sheetSelectOrLink(note.id)}});svg.append(g);
   });
+  sheetRenderLinks(svg,resolved,layout);
   const preview=sheetSvgElement('g',{id:'sheet-note-preview',class:'sheet-note-preview','pointer-events':'none',visibility:'hidden'});preview.append(sheetSvgElement('ellipse',{cx:0,cy:0,rx:9,ry:6,transform:'rotate(-18 0 0)',class:'sheet-notehead'}),sheetSvgElement('text',{x:0,y:23,'text-anchor':'middle',class:'sheet-note-label'},''));svg.append(preview);
   if(sheetPreviewClientPoint){const point=sheetSnapPoint({clientX:sheetPreviewClientPoint.x,clientY:sheetPreviewClientPoint.y});updateSheetPreview(point)}
   svg.setAttribute('aria-label',title+' sheet music staff · '+clef+' clef · '+sheetTimeSignature());
@@ -1044,13 +1146,48 @@ function sheetPushUndo(){
   if(sheetPlaybackSession)stopSheetPlayback();
 }
 function updateSheetEditButtons(){
-  const selected=sheetNotes.some(note=>note.id===selectedSheetNoteId);
+  const note=sheetNotes.find(note=>note.id===selectedSheetNoteId),selected=!!note;
   document.querySelector('#sheet-undo').disabled=!sheetUndoStack.length;document.querySelector('#sheet-redo').disabled=!sheetRedoStack.length;
   document.querySelector('#sheet-copy').disabled=!selected;document.querySelector('#sheet-delete-note').disabled=!selected;
   document.querySelector('#sheet-paste').disabled=!copiedSheetNote;
+  document.querySelector('#sheet-apply-note').disabled=!selected;
+  const beam=document.querySelector('#sheet-beam');
+  beam.disabled=!note||note.rest||!sheetFlagCount(sheetReadNoteValue(note).baseBeats);
+  beam.value=note?.beamMode||'auto';
+  for(const id of ['sheet-tie','sheet-slur','sheet-remove-links'])document.querySelector('#'+id).disabled=(!note||note.rest)&&!sheetLinkDraft;
+  document.querySelector('#sheet-link-hint').textContent=sheetLinkDraft
+    ?'Select the ending note. Use Remove ties and slurs to cancel.'
+    :'Select a note to edit beams, ties, or slurs.';
+}
+function sheetSelectOrLink(id){
+  if(!sheetLinkDraft){selectSheetNote(id);return}
+  const notes=sheetResolveNotes();
+  const source=notes.find(note=>note.id===sheetLinkDraft.id),target=notes.find(note=>note.id===id);
+  const isTie=sheetLinkDraft.mark==='tie';
+  if(!source||!target||target.rest||target.beat<=source.beat||(isTie&&!sheetCanTie(source,target))){
+    document.querySelector('#sheet-link-hint').textContent=isTie?'Choose the next note at the same pitch. A tie cannot cross a gap.':'Choose a later note to end the slur.';
+    return;
+  }
+  sheetPushUndo();
+  const property=isTie?'tieTo':'slurTo';
+  if(isTie)for(const note of sheetNotes)if(note.tieTo===id)delete note.tieTo;
+  sheetNotes.find(note=>note.id===source.id)[property]=id;
+  sheetLinkDraft=null;
+  selectSheetNote(source.id);
+}
+function sheetRemoveLinks(){
+  if(sheetLinkDraft){sheetLinkDraft=null;updateSheetEditButtons();return}
+  const note=sheetNotes.find(note=>note.id===selectedSheetNoteId);
+  if(!note)return;
+  sheetPushUndo();
+  for(const item of sheetNotes){
+    for(const property of ['tieTo','slurTo'])if(item===note||item[property]===note.id)delete item[property];
+  }
+  renderSheetStaff();
 }
 function sheetPlaceAt(event){
-  const target=sheetNoteHitTarget(event.target);if(target){selectSheetNote(target.getAttribute('data-sheet-note-id'));return}
+  const target=sheetNoteHitTarget(event.target);if(target){sheetSelectOrLink(target.getAttribute('data-sheet-note-id'));return}
+  if(sheetLinkDraft)return;
   const snapped=sheetSnapPoint(event);if(!snapped)return;
   const {beat,step}=snapped,rest=document.querySelector('#sheet-place-rest').checked;
   sheetPushUndo();const note={id:'sheet-'+Date.now()+'-'+Math.random().toString(36).slice(2,8),beat,step,...sheetToolbarNoteValue(),accidental:rest?'none':document.querySelector('#sheet-accidental').value,rest};sheetNotes.push(note);selectedSheetNoteId=note.id;sheetPreviewClientPoint=null;
@@ -1066,10 +1203,14 @@ function sheetUpdateSelectedTool(){
   const note=sheetNotes.find(item=>item.id===selectedSheetNoteId);if(!note)return;sheetPushUndo();Object.assign(note,sheetToolbarNoteValue());if(!note.rest)note.accidental=document.querySelector('#sheet-accidental').value;renderSheetStaff();document.querySelector('#sheet-status').textContent='Selected note updated.';
 }
 function sheetDeleteSelected(){
-  if(!selectedSheetNoteId)return;sheetPushUndo();sheetNotes=sheetNotes.filter(note=>note.id!==selectedSheetNoteId);selectedSheetNoteId=null;updateSheetEditButtons();renderSheetStaff();document.querySelector('#sheet-current-note').textContent='Note deleted.';
+  if(!selectedSheetNoteId)return;sheetPushUndo();sheetNotes=sheetNotes.filter(note=>note.id!==selectedSheetNoteId);
+  for(const note of sheetNotes)for(const property of ['tieTo','slurTo'])if(note[property]===selectedSheetNoteId)delete note[property];
+  selectedSheetNoteId=null;sheetLinkDraft=null;updateSheetEditButtons();renderSheetStaff();document.querySelector('#sheet-current-note').textContent='Note deleted.';
 }
 function sheetCopySelected(){
-  const note=sheetNotes.find(item=>item.id===selectedSheetNoteId);if(!note)return;copiedSheetNote=sheetClone(note);updateSheetEditButtons();document.querySelector('#sheet-status').textContent='Note copied. Select Paste to add another.';
+  const note=sheetNotes.find(item=>item.id===selectedSheetNoteId);if(!note)return;
+  const {tieTo,slurTo,...copy}=note;
+  copiedSheetNote=sheetClone(copy);updateSheetEditButtons();document.querySelector('#sheet-status').textContent='Note copied. Select Paste to add another.';
 }
 function sheetPaste(){
   if(!copiedSheetNote)return;sheetPushUndo();const selected=sheetNotes.find(item=>item.id===selectedSheetNoteId),nextBeat=selected?selected.beat+selected.durationBeats:sheetNotes.reduce((max,note)=>Math.max(max,note.beat+note.durationBeats),0),note={...sheetClone(copiedSheetNote),id:'sheet-'+Date.now()+'-'+Math.random().toString(36).slice(2,8),beat:nextBeat};sheetNotes.push(note);selectedSheetNoteId=note.id;updateSheetEditButtons();renderSheetStaff();document.querySelector('#sheet-status').textContent='Note pasted.';
@@ -1091,6 +1232,7 @@ function saveSheetProject(){
 }
 function applySheetProject(project){
   stopSheetPlayback();sheetProjectId=project.id;sheetNotes=sheetClone(project.notes);selectedSheetNoteId=null;sheetUndoStack=[];sheetRedoStack=[];
+  sheetLinkDraft=null;
   document.querySelector('#sheet-title').value=project.title||'Untitled song';document.querySelector('#sheet-composer-name').value=project.composer||'';document.querySelector('#sheet-instrument').value=info[project.instrument]?project.instrument:'piano';document.querySelector('#sheet-tempo').value=String(Math.max(40,Math.min(200,Number(project.bpm)||100)));document.querySelector('#sheet-tempo-value').textContent=document.querySelector('#sheet-tempo').value+' BPM';document.querySelector('#sheet-clef').value=project.clef==='bass'?'bass':'treble';document.querySelector('#sheet-key-signature').value=sheetKeySignatureCounts[project.keySignature]!==undefined?project.keySignature:'C';document.querySelector('#sheet-time-signature').value=['4/4','3/4','6/8'].includes(project.timeSignature)?project.timeSignature:'4/4';document.querySelector('#sheet-place-rest').checked=false;document.querySelector('#sheet-accidental').disabled=false;
   document.querySelector('#sheet-duration').value='1';document.querySelector('#sheet-dots').value='0';
   renderSheetStaff();updateSheetEditButtons();document.querySelector('#sheet-status').textContent='Opened “'+project.title+'”.';
@@ -1149,18 +1291,46 @@ function stopSheetPlayback(message='Stopped'){
 }
 function scheduleSheetPlayback(session){
   if(!session||session.paused)return;
-  const now=performance.now(),elapsed=session.elapsedMs+(now-session.startedAt),beatMs=60000/(Number(document.querySelector('#sheet-tempo').value)||100),resolved=sheetResolveNotes();
-  resolved.filter(note=>note.beat*beatMs>=elapsed-15).forEach(note=>{
-    const noteStart=note.beat*beatMs,delay=Math.max(0,noteStart-elapsed),duration=note.durationBeats*beatMs,timer=setTimeout(()=>{
-      session.timers.delete(timer);if(sheetPlaybackSession!==session||session.paused)return;
-      const group=[...document.querySelectorAll('#sheet-staff .sheet-note')].find(item=>item.dataset.sheetNoteId===note.id);group?.classList.add('playing');
-      const label=note.rest?'Rest':sheetInstrument()==='drums'?sheetDrumLabel(sheetDrumPartForMidi(note.midi)):note.label;
-      document.querySelector('#sheet-current-note').textContent=note.rest?`Rest · beat ${note.beat+1}`:`Playing ${label}`;
-      let voice=null;if(!note.rest){if(sheetInstrument()==='drums')voice=playDrum(sheetDrumPartForMidi(note.midi),false);else{const soundingMidi=sheetInstrument()==='clarinet'?note.midi-2:note.midi;voice=playInstrumentNote(sheetInstrument(),soundingMidi,.24,'Sheet · '+note.label,false)}if(voice)session.voices.add(voice)}
-      const releaseTimer=setTimeout(()=>{session.timers.delete(releaseTimer);group?.classList.remove('playing');if(voice){stopVoice(voice,false,Math.min(.03,duration/3000));session.voices.delete(voice)}},duration);session.timers.add(releaseTimer);
-    },delay);session.timers.add(timer);
-  });
-  const endBeat=sheetNotes.reduce((max,note)=>Math.max(max,note.beat+note.durationBeats),0),endTimer=setTimeout(()=>{session.timers.delete(endTimer);if(sheetPlaybackSession===session)stopSheetPlayback('Playback complete')},Math.max(0,endBeat*beatMs-elapsed)+Math.max(120,beatMs*.15));session.timers.add(endTimer);
+  const beatMs=60000/(Number(document.querySelector('#sheet-tempo').value)||100),resolved=sheetResolveNotes();
+  const instrument=sheetInstrument();
+  const schedule=(time,callback)=>{
+    const delay=Math.max(0,time-session.elapsedMs-performance.now()+session.startedAt);
+    const timer=setTimeout(()=>{
+      session.timers.delete(timer);
+      if(sheetPlaybackSession===session&&!session.paused)callback();
+    },delay);
+    session.timers.add(timer);
+  };
+  const findGroup=id=>[...document.querySelectorAll('#sheet-staff .sheet-note')].find(item=>item.dataset.sheetNoteId===id);
+  const chains=sheetPlaybackChains(resolved);
+  for(const {members,start,end} of chains){
+    if(end*beatMs<=session.elapsedMs)continue;
+    const first=members[0];
+    let voice=null;
+    if(!first.rest&&(instrument!=='drums'||start*beatMs>=session.elapsedMs)){
+      schedule(start*beatMs,()=>{
+        voice=instrument==='drums'?playDrum(sheetDrumPartForMidi(first.midi),false)
+          :playInstrumentNote(instrument,first.midi-(instrument==='clarinet'?2:0),.24,'Sheet · '+first.label,false);
+        if(voice)session.voices.add(voice);
+      });
+      schedule(end*beatMs,()=>{
+        if(!voice)return;
+        if(instrument!=='drums')stopVoice(voice,false,Math.min(.03,(end-start)*beatMs/3000));
+        session.voices.delete(voice);
+      });
+    }
+    for(const note of members){
+      const noteEnd=(note.beat+note.durationBeats)*beatMs;
+      if(noteEnd<=session.elapsedMs)continue;
+      schedule(note.beat*beatMs,()=>{
+        findGroup(note.id)?.classList.add('playing');
+        const label=instrument==='drums'?sheetDrumLabel(sheetDrumPartForMidi(note.midi)):note.label;
+        document.querySelector('#sheet-current-note').textContent=note.rest?`Rest · beat ${note.beat+1}`:`Playing ${label}`;
+      });
+      schedule(noteEnd,()=>findGroup(note.id)?.classList.remove('playing'));
+    }
+  }
+  schedule(Math.max(0,...chains.map(chain=>chain.end))*beatMs+120,()=>stopSheetPlayback('Playback complete'));
 }
 function startSheetPlayback({restart=false}={}){
   if(!sheetNotes.length){document.querySelector('#sheet-status').textContent='Add at least one note or rest before playing.';return}
@@ -1176,10 +1346,18 @@ function setupSheetMusicEditor(){
   ['sheet-title','sheet-composer-name','sheet-clef','sheet-key-signature','sheet-time-signature'].forEach(id=>document.querySelector('#'+id).addEventListener('input',renderSheetStaff));
   document.querySelector('#sheet-instrument').addEventListener('change',event=>{if(event.target.value==='drums')document.querySelector('#sheet-clef').value='bass';renderSheetStaff()});
   document.querySelector('#sheet-tempo').addEventListener('input',event=>document.querySelector('#sheet-tempo-value').textContent=event.target.value+' BPM');
-  for(const id of ['sheet-duration','sheet-dots','sheet-accidental'])document.querySelector('#'+id).addEventListener('change',()=>{if(selectedSheetNoteId)sheetUpdateSelectedTool()});
+  document.querySelector('#sheet-apply-note').addEventListener('click',sheetUpdateSelectedTool);
+  document.querySelector('#sheet-beam').addEventListener('change',event=>{
+    const note=sheetNotes.find(note=>note.id===selectedSheetNoteId);if(!note)return;
+    sheetPushUndo();note.beamMode=event.target.value;renderSheetStaff();
+  });
+  for(const mark of ['tie','slur'])document.querySelector('#sheet-'+mark).addEventListener('click',()=>{
+    if(selectedSheetNoteId){sheetLinkDraft={id:selectedSheetNoteId,mark};updateSheetEditButtons()}
+  });
+  document.querySelector('#sheet-remove-links').addEventListener('click',sheetRemoveLinks);
   document.querySelector('#sheet-place-rest').addEventListener('change',event=>document.querySelector('#sheet-accidental').disabled=event.target.checked);
   document.querySelector('#sheet-undo').addEventListener('click',sheetUndo);document.querySelector('#sheet-redo').addEventListener('click',sheetRedo);document.querySelector('#sheet-copy').addEventListener('click',sheetCopySelected);document.querySelector('#sheet-paste').addEventListener('click',sheetPaste);document.querySelector('#sheet-delete-note').addEventListener('click',sheetDeleteSelected);
-  document.querySelector('#sheet-play').addEventListener('click',()=>startSheetPlayback());document.querySelector('#sheet-pause').addEventListener('click',pauseSheetPlayback);document.querySelector('#sheet-stop').addEventListener('click',()=>stopSheetPlayback());document.querySelector('#sheet-restart').addEventListener('click',()=>startSheetPlayback({restart:true}));document.querySelector('#sheet-save').addEventListener('click',saveSheetProject);document.querySelector('#sheet-new').addEventListener('click',sheetNewProject);
+  document.querySelector('#sheet-play').addEventListener('click',()=>startSheetPlayback());document.querySelector('#sheet-pause').addEventListener('click',pauseSheetPlayback);document.querySelector('#sheet-stop').addEventListener('click',()=>stopSheetPlayback());document.querySelector('#sheet-restart').addEventListener('click',()=>startSheetPlayback({restart:true}));document.querySelector('#sheet-save').addEventListener('click',saveSheetProject);document.querySelector('#sheet-new').addEventListener('click',()=>{sheetLinkDraft=null;sheetNewProject()});
   renderSheetStaff();renderSheetProjectList();updateSheetEditButtons();updateSheetTransport();
 }
 function recordCompositionEvent(instrument,event){if(!composerSession?.recording||composerSession.instrument!==instrument||composerSession.events.length>=250)return null;const elapsed=Math.max(0,performance.now()-composerSession.startedAt),beat=Math.round(elapsed*composerSession.bpm/60000*4)/4,savedEvent={...event,at:Math.round(elapsed),beat,durationBeats:.7};composerSession.events.push(savedEvent);const count=composerSession.events.length;document.querySelector('#composer-toolbar-copy').textContent=`Recording “${composerSession.title}” · ${count} notes · ${Math.floor(elapsed/1000)}s`;return savedEvent}

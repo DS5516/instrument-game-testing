@@ -11,7 +11,8 @@ assert.ok(start >= 0 && end > start, 'sheet editor source block exists');
 const context = vm.createContext({});
 const editor = vm.runInContext(source.slice(start, end) + `
   ({sheetNoteValue, sheetReadNoteValue, sheetNoteValueLabel, sheetFlagCount,
-    sheetSnapPoint, sheetStaffGeometry, sheetBeatToX,
+    sheetSnapPoint, sheetStaffGeometry, sheetBeatToX, sheetBeamGroups, sheetPlaybackChains, sheetResolveNotes,
+    sheetRenderBeams, sheetRenderLinks,
     setNotes(notes) { sheetNotes = notes; }})
 `, context);
 
@@ -26,6 +27,57 @@ test('all written lengths preserve base value and exact dotted timing', () => {
   }
   assert.equal(editor.sheetNoteValueLabel({durationBeats: 1.5}), 'Dotted quarter');
   assert.equal(editor.sheetNoteValueLabel({durationBeats: 1.75}), 'Double-dotted quarter');
+});
+
+test('beams follow 4/4 and 6/8 subdivisions, with explicit joins and breaks', () => {
+  const notes = [0, .5, 1, 1.25, 1.5, 1.75, 2].map((beat,id) => ({
+    id, beat, durationBeats: beat>=1&&beat<2?.25:.5,
+  }));
+  const groups = (items, meter) => JSON.stringify(editor.sheetBeamGroups(items, meter).map(group=>group.map(note=>note.id)));
+  assert.equal(groups(notes,'4/4'),'[[0,1],[2,3,4,5]]');
+  assert.equal(groups(notes,'6/8'),'[[0,1,2,3],[4,5,6]]');
+  notes[2].beamMode='join';
+  notes[4].beamMode='break';
+  assert.equal(groups(notes,'4/4'),'[[0,1,2,3],[4,5]]');
+  notes[3].rest=true;
+  assert.equal(groups(notes,'4/4'),'[[0,1,2],[4,5]]');
+});
+
+test('cross-bar accidental ties play once and do not change later untied notes', () => {
+  const notes = [
+    {id:'a',beat:3,step:0,durationBeats:1,accidental:'sharp',tieTo:'b'},
+    {id:'b',beat:4,step:0,durationBeats:.5,accidental:'none',tieTo:'c'},
+    {id:'c',beat:4.5,step:0,durationBeats:.5,accidental:'none'},
+    {id:'d',beat:5,step:0,durationBeats:1,accidental:'none'},
+  ];
+  const resolved = editor.sheetResolveNotes(notes,{clef:'treble',keySignature:'C',timeSignature:'4/4'});
+  assert.equal(JSON.stringify(resolved.map(note=>note.label)),'["E♯4","E♯4","E♯4","E4"]');
+  const chains=editor.sheetPlaybackChains(resolved);
+  assert.equal(chains.length,2);
+  assert.equal(chains[0].members.length,3);
+  assert.equal(chains[0].start,3);
+  assert.equal(chains[0].end,5);
+  assert.equal(editor.sheetPlaybackChains(resolved.slice(1)).length,2);
+});
+
+test('the renderer draws double beams and distinct tie and slur curves', () => {
+  const layout = {bottom:142,stepHeight:10,left:210,measureWidth:596,measureBeats:4};
+  const drawn = [];
+  const svg = {append: node => drawn.push(node)};
+  context.document = {createElementNS: (_namespace,tag)=>({
+    tag,
+    attributes:{},
+    setAttribute(name,value){this.attributes[name]=value;},
+  })};
+  const notes = [
+    {id:'a',beat:0,step:0,durationBeats:.25,midi:64,tieTo:'b',slurTo:'c'},
+    {id:'b',beat:.25,step:0,durationBeats:.25,midi:64},
+    {id:'c',beat:.5,step:2,durationBeats:.5,midi:67},
+  ];
+  editor.sheetRenderBeams(svg,editor.sheetBeamGroups(notes,'4/4'),layout);
+  assert.equal(drawn.filter(node=>node.attributes.class==='sheet-beam').length,3);
+  editor.sheetRenderLinks(svg,notes,layout);
+  assert.deepEqual(drawn.filter(node=>node.tag==='path').map(node=>node.attributes.class), ['sheet-tie','sheet-slur']);
 });
 
 test('flags follow the written value independently of the dots', () => {

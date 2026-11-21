@@ -1,5 +1,12 @@
 # Instrument Testing Versions
 
+## 0.6.0 — Round 3: beams, ties, and slurs (2026-11-21)
+
+- Added automatic meter-based beams, including secondary beams for sixteenths and explicit join or break controls.
+- Added ties and slurs between selected notes. A tie across a barline preserves the held pitch and plays the chain with one attack.
+- Added an explicit Apply to selected action so choosing the next note value preserves the existing note.
+- Tested grouping in 4/4 and 6/8, beam and curve output, and cross-bar ties including inherited accidentals. A simulated DOM also covered mixed-duration entry, 32nd-note flags, and saving and reopening.
+
 ## 0.5.0 — Round 2: dotted and thirty-second notes (2026-11-21)
 
 - Added thirty-second notes and rests and zero, one, or two augmentation dots. Written symbols retain their base shape while duration changes by the exact dot multiplier.

@@ -1,6 +1,26 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { articulations, articulationTiming, renderArticulation, expandRepeatMeasures } = require('../outputs/sheet-expression.js');
+const { articulations, articulationTiming, renderArticulation, expandRepeatMeasures, playbackSegments, sustainLoopForSample } = require('../outputs/sheet-expression.js');
+
+test('a monophonic performance chooses one chord tone and releases before the next attack', () => {
+  const chains = [
+    {start:0,end:2,members:[{midi:60,voice:2}]},
+    {start:0,end:2,members:[{midi:64,voice:1}]},
+    {start:1,end:2,members:[{midi:67,voice:1,articulation:'staccato'}]},
+  ];
+  const segments = playbackSegments(chains, beat => beat * 500, true);
+  assert.deepEqual(segments.map(part => [part.first.midi, part.start, part.gate]), [[64,0,500],[67,500,750]]);
+});
+
+test('an undersized pitched sample gets an in-range, phase-aligned sustain loop', () => {
+  const sampleRate=8800;
+  const data=Float32Array.from({length:sampleRate},(_,index)=>Math.sin(2*Math.PI*index/20));
+  const buffer={duration:1,sampleRate,getChannelData:()=>data};
+  assert.equal(sustainLoopForSample(buffer,1,.5,69),null);
+  const loop=sustainLoopForSample(buffer,1,2,69);
+  assert.ok(loop.start>0&&loop.end>loop.start&&loop.end<buffer.duration);
+  assert.ok(Math.abs(Math.sin(2*Math.PI*loop.start*440)-Math.sin(2*Math.PI*loop.end*440))<1e-5);
+});
 
 function createSvg(tag, attributes) {
   return {
@@ -68,7 +88,7 @@ test('scores without repeats preserve gaps, durations, and the exact ending beat
   assert.equal(result.endBeat, 9);
   assert.notEqual(result.notes[0], notes[0]);
   assert.equal(notes[0].id, 'a');
-  assert.deepEqual(expandRepeatMeasures([], 4), { notes: [], endBeat: 0 });
+  assert.deepEqual(expandRepeatMeasures([], 4), { notes: [], endBeat: 0, measureOrder: [] });
 });
 
 test('repeat flags affect the full measures that contain them and play twice', () => {

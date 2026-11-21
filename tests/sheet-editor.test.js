@@ -124,7 +124,8 @@ function createEditor() {
       createElement: tag => new TestElement(tag),
     },
     localStorage: { setItem: (key, value) => storage.set(key, value), getItem: key => storage.get(key) },
-    info: { piano: { name: 'Piano' } },
+    info: { piano: { name: 'Piano' }, drums: { name: 'Drums' }, clarinet: { name: 'Clarinet' } },
+    monophonicInstruments: new Set(['flute','clarinet']),
     SheetExpression,
     SheetMusicXML,
     Option: function (name, value) { Object.assign(this, { name, value }); },
@@ -139,6 +140,10 @@ function createEditor() {
     playInstrumentNote(instrument, midi) {
       audioEvents.push({ kind: 'start', time: now, midi });
       return { instrument, midi };
+    },
+    playDrum(part) {
+      audioEvents.push({ kind: 'start', time: now, midi: part });
+      return { instrument:'drums', midi:part };
     },
     stopVoice(voice) { audioEvents.push({ kind: 'stop', time: now, midi: voice.midi }); },
   };
@@ -161,7 +166,7 @@ function createEditor() {
     svg.fire(eventType, { clientX: point.x * scaleX + offsetX, clientY: point.y * scaleY + offsetY });
   }
 
-  function advancePlayback(until = Infinity) {
+  function advancePlayback(until = Infinity, {late=false} = {}) {
     let cursorSeen = false;
     let steps = 0;
     while (timers.size) {
@@ -169,7 +174,7 @@ function createEditor() {
       const [id, { callback, at }] = [...timers].sort((left, right) => left[1].at - right[1].at)[0];
       if (at > until) break;
       timers.delete(id);
-      now = at;
+      now = late?until:at;
       callback();
       cursorSeen ||= svg.querySelector('#sheet-playhead').attrs.visibility === 'visible';
     }
@@ -344,4 +349,60 @@ test('pausing and stopping release the current voice and cancel later notes', as
     ['start', 0, 64], ['stop', 200, 64], ['start', 250, 64], ['stop', 350, 64],
   ]);
   assert.equal(editor.svg.querySelector('#sheet-playhead').attrs.visibility, 'hidden');
+});
+
+test('staccato releases its highlight and readout during silence', async () => {
+  const { control, input, press, pointer, advancePlayback, svg } = createEditor();
+  pointer(0,0);
+  input('articulation','staccato');
+  press('apply-expression');
+  pointer(2,1);
+  press('play');
+  await new Promise(resolve => setImmediate(resolve));
+  advancePlayback(100);
+  assert.equal(control('current-note').textContent,'Playing E4');
+  advancePlayback(400);
+  assert.equal(svg.findAll(node=>node.classes.has('playing')).length,0);
+  assert.equal(control('current-note').textContent,'Playing sheet');
+});
+
+test('a late timer skips notes that already ended instead of attacking them together', async () => {
+  const { press, pointer, advancePlayback, audioEvents } = createEditor();
+  pointer(0,0);
+  pointer(1,1);
+  pointer(2,2);
+  press('play');
+  await new Promise(resolve => setImmediate(resolve));
+  advancePlayback(1050,{late:true});
+  assert.deepEqual(audioEvents.filter(event=>event.kind==='start').map(event=>event.midi),[67]);
+});
+
+test('Stop cuts an active percussion voice after its written note has ended', async () => {
+  const { input, press, pointer, advancePlayback, audioEvents } = createEditor();
+  input('instrument','drums').fire('change');
+  input('duration',.125);
+  pointer(0,0);
+  pointer(2,1);
+  press('play');
+  await new Promise(resolve => setImmediate(resolve));
+  advancePlayback(100);
+  press('stop');
+  assert.deepEqual(audioEvents.map(({kind,time})=>[kind,time]),[['start',0],['stop',100]]);
+});
+
+test('a tie attacks once, highlights each member, and leaves the following rest silent', async () => {
+  const { run, press, advancePlayback, audioEvents, control, svg } = createEditor();
+  run(`sheetNotes=[
+    {id:'first',beat:0,step:0,durationBeats:1,tieTo:'second'},
+    {id:'second',beat:1,step:0,durationBeats:1},
+    {id:'rest',beat:2,step:0,durationBeats:1,rest:true}
+  ]; renderSheetStaff();`);
+  press('play');
+  await new Promise(resolve => setImmediate(resolve));
+  advancePlayback(650);
+  assert.deepEqual(svg.findAll(node=>node.classes.has('playing')).map(note=>note.dataset.sheetNoteId),['second']);
+  advancePlayback(1250);
+  assert.equal(control('current-note').textContent,'Rest');
+  assert.deepEqual(audioEvents.map(({kind,time,midi})=>[kind,time,midi]),[['start',0,64],['stop',1000,64]]);
+  advancePlayback();
 });

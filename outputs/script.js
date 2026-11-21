@@ -108,9 +108,14 @@ function flushPendingNotes(instrument){
   return loadPromises[instrument];
 }
 function nearestAnchor(instrument,midi){const loaded=instrumentBuffers[instrument];const available=loaded?.size?sampleAnchors[instrument].filter(candidate=>loaded.has(candidate)):sampleAnchors[instrument];return available.reduce((best,candidate)=>Math.abs(candidate-midi)<Math.abs(best-midi)?candidate:best,available[0])}
-function playBuffer(buffer,rate=1,level=.24,instrument=null,startAt=null){
+function playBuffer(buffer,rate=1,level=.24,instrument=null,startAt=null,loop=null){
   const ctx=initAudio();if(!ctx||!buffer)return null;
   const source=track(ctx.createBufferSource(),instrument),gain=ctx.createGain(),toneNodes=[];source.buffer=buffer;source.playbackRate.value=rate;gain.gain.value=level*(instrument==='clarinet'?1.5:1);source.connect(gain);
+  if(loop){
+    source.loopStart=loop.start;
+    source.loopEnd=loop.end;
+    source.loop=true;
+  }
   if(instrument==='clarinet'){
     const body=ctx.createBiquadFilter();body.type='lowshelf';body.frequency.value=250;body.gain.value=4.5;
     const core=ctx.createBiquadFilter();core.type='peaking';core.frequency.value=900;core.Q.value=.75;core.gain.value=2.5;
@@ -126,8 +131,11 @@ const fallbackHarmonics={piano:[1,.56,.34,.22,.15,.1,.07,.05,.035],guitar:[1,.72
 function registerFallbackVoice(sources,gain,instrument,toneNodes=[]){
   const voice={source:sources[0],sources,gain,instrument,toneNodes,stopped:false};activeVoices.add(voice);if(instrument){if(!instrumentVoices.has(instrument))instrumentVoices.set(instrument,new Set());instrumentVoices.get(instrument).add(voice)}let remaining=sources.length;const cleanup=()=>{if(--remaining>0)return;activeVoices.delete(voice);instrumentVoices.get(instrument)?.delete(voice);forgetFeedbackVoice(voice);try{gain.disconnect();toneNodes.forEach(node=>node.disconnect())}catch{}};sources.forEach(source=>{track(source,instrument);source.addEventListener('ended',cleanup,{once:true})});return voice;
 }
-function playFallbackNote(instrument,midi,level=.24,duration=null){
-  const ctx=initAudio();if(!ctx||!master)return null;const partials=fallbackHarmonics[instrument]||fallbackHarmonics.piano,real=new Float32Array(partials.length+1),imag=new Float32Array(partials.length+1);partials.forEach((amplitude,index)=>{imag[index+1]=amplitude});const wave=ctx.createPeriodicWave(real,imag),oscillator=ctx.createOscillator(),filter=ctx.createBiquadFilter(),envelope=ctx.createGain(),now=ctx.currentTime,attack={piano:.006,guitar:.008,violin:.035,flute:.06,clarinet:.025}[instrument]||.02;oscillator.setPeriodicWave(wave);oscillator.frequency.setValueAtTime(frequency(midi),now);filter.type='lowpass';filter.frequency.value={piano:7600,guitar:5200,violin:6200,flute:7200,clarinet:4300}[instrument]||6000;filter.Q.value=.45;oscillator.connect(filter);filter.connect(envelope);envelope.connect(master);const peak=level*(instrument==='clarinet'?.72:.62);envelope.gain.setValueAtTime(.0001,now);envelope.gain.linearRampToValueAtTime(peak,now+attack);if(instrument==='piano'||instrument==='guitar')envelope.gain.setTargetAtTime(peak*(instrument==='piano'?.38:.2),now+attack+.08,instrument==='piano'?.65:.34);oscillator.start(now);const voice=registerFallbackVoice([oscillator],envelope,instrument,[filter]);if(duration)window.setTimeout(()=>stopVoice(voice,false,.12),duration*1000);return voice;
+function playFallbackNote(instrument,midi,level=.24,duration=null,holdSeconds=0){
+  const ctx=initAudio();if(!ctx||!master)return null;const partials=fallbackHarmonics[instrument]||fallbackHarmonics.piano,real=new Float32Array(partials.length+1),imag=new Float32Array(partials.length+1);partials.forEach((amplitude,index)=>{imag[index+1]=amplitude});const wave=ctx.createPeriodicWave(real,imag),oscillator=ctx.createOscillator(),filter=ctx.createBiquadFilter(),envelope=ctx.createGain(),now=ctx.currentTime;
+  const fullAttack={piano:.006,guitar:.008,violin:.035,flute:.06,clarinet:.025}[instrument]||.02;
+  const attack=holdSeconds>0?Math.min(fullAttack,holdSeconds*.35):fullAttack;
+  oscillator.setPeriodicWave(wave);oscillator.frequency.setValueAtTime(frequency(midi),now);filter.type='lowpass';filter.frequency.value={piano:7600,guitar:5200,violin:6200,flute:7200,clarinet:4300}[instrument]||6000;filter.Q.value=.45;oscillator.connect(filter);filter.connect(envelope);envelope.connect(master);const peak=level*(instrument==='clarinet'?.72:.62);envelope.gain.setValueAtTime(.0001,now);envelope.gain.linearRampToValueAtTime(peak,now+attack);if(instrument==='piano'||instrument==='guitar')envelope.gain.setTargetAtTime(peak*(instrument==='piano'?.38:.2),now+attack+.08,instrument==='piano'?.65:.34);oscillator.start(now);const voice=registerFallbackVoice([oscillator],envelope,instrument,[filter]);if(duration)window.setTimeout(()=>stopVoice(voice,false,.12),duration*1000);return voice;
 }
 function playFallbackDrum(part,level=.38){
   const ctx=initAudio();if(!ctx||!master)return null;const now=ctx.currentTime,duration=part==='crash'?.9:part==='ride'?.55:part==='hatOpen'?.42:part==='hat'?.12:part==='snareSnap'?.16:part==='snare'?.25:.38,envelope=ctx.createGain(),sources=[],nodes=[];envelope.gain.setValueAtTime(.0001,now);envelope.gain.linearRampToValueAtTime(part==='hat'?level*.58:level,now+.004);envelope.gain.exponentialRampToValueAtTime(.0001,now+duration);envelope.connect(master);
@@ -151,7 +159,7 @@ function queuePendingNote(instrument,targetMidi,level,control,monophonic){
   const pending={pending:true,instrument,midi:targetMidi,level,control,stopped:false};pendingNotes[instrument]=pendingNotes[instrument]||[];
   if(monophonic)pendingNotes[instrument]=[pending];else{pendingNotes[instrument].push(pending);if(pendingNotes[instrument].length>8)pendingNotes[instrument].shift()}
   return pending;
-}function playInstrumentNote(instrument,targetMidi,level=.24,control='',judge=true){
+}function playInstrumentNote(instrument,targetMidi,level=.24,control='',judge=true,{holdSeconds=0}={}){
   if(judge)recordPlayerAction(instrument);
   const compositionEvent=judge?recordCompositionEvent(instrument,{kind:'note',midi:targetMidi}):null;
   if(judge)judgeRhythmInput(instrument,targetMidi);
@@ -159,11 +167,18 @@ function queuePendingNote(instrument,targetMidi,level,control,monophonic){
   if(monophonic){stopInstrumentSounds(instrument,instrument==='clarinet'?false:true,instrument==='clarinet' ? .001 : .11);for(const note of pendingNotes[instrument]||[])stopVoice(note,true);pendingNotes[instrument]=[]}
   showNoteInfo(instrument,targetMidi,control||`Note ${instrument==='clarinet'?pitchName(targetMidi+2):pitchName(targetMidi)}`);
   const finishRhythmVoice=voice=>{if(voice){rememberFeedbackVoice(voice,instrument,targetMidi);if(compositionEvent){voice.composerEvent=compositionEvent;voice.composerStartedAt=audio?.currentTime||0;voice.composerBpm=composerSession?.bpm||120}}const state=rhythmState;if(voice&&state?.instrument===instrument){const slotDuration=(state.stepBeats||.5)*60/(state.bpm||selectedSong?.bpm||120)*.9,duration=instrument==='clarinet'?Math.max(.42,slotDuration):slotDuration;window.setTimeout(()=>stopVoice(voice),duration*1000)}return voice};
+  const fallback=()=>finishRhythmVoice(playFallbackNote(instrument,targetMidi,level,null,holdSeconds));
   const buffers=instrumentBuffers[instrument];
-  if(!buffers?.size){document.querySelector('#sound-caption').textContent=`${info[instrument].caption} · built-in ${instrument} sound`;return finishRhythmVoice(playFallbackNote(instrument,targetMidi,level))}
-  const anchor=nearestAnchor(instrument,targetMidi);if(instrument==='clarinet'&&Math.abs(targetMidi-anchor)>3){document.querySelector('#sound-caption').textContent=`Using built-in clarinet tone for ${pitchName(targetMidi)}`;return finishRhythmVoice(playFallbackNote(instrument,targetMidi,level))}const buffer=buffers.get(anchor);
-  if(!buffer){document.querySelector('#sound-caption').textContent=`Using built-in ${instrument} sound for ${pitchName(targetMidi)}`;return finishRhythmVoice(playFallbackNote(instrument,targetMidi,level))}
-  return finishRhythmVoice(playBuffer(buffer,2**((targetMidi-anchor)/12),level,instrument));
+  if(!buffers?.size){document.querySelector('#sound-caption').textContent=`${info[instrument].caption} · built-in ${instrument} sound`;return fallback()}
+  const anchor=nearestAnchor(instrument,targetMidi);if(instrument==='clarinet'&&Math.abs(targetMidi-anchor)>3){document.querySelector('#sound-caption').textContent=`Using built-in clarinet tone for ${pitchName(targetMidi)}`;return fallback()}const buffer=buffers.get(anchor);
+  if(!buffer){document.querySelector('#sound-caption').textContent=`Using built-in ${instrument} sound for ${pitchName(targetMidi)}`;return fallback()}
+  const rate=2**((targetMidi-anchor)/12);
+  const sustained=instrument==='violin'||monophonic;
+  const loop=sustained&&holdSeconds>0?SheetExpression.sustainLoopForSample(buffer,rate,holdSeconds,anchor):null;
+  if(sustained&&holdSeconds>buffer.duration/rate&&!loop){
+    return fallback();
+  }
+  return finishRhythmVoice(playBuffer(buffer,rate,level,instrument,null,loop));
 }function playDrum(part,judge=true,dynamicGain=1){
   if(judge)recordPlayerAction('drums');
   if(judge)recordCompositionEvent('drums',{kind:'drum',part});
@@ -1491,7 +1506,7 @@ function selectSheetNote(id,action='Selected'){
     document.querySelector('#sheet-voice').value=String(note.voice||1);
     document.querySelector('#sheet-accidental').value=note.accidental||'none';
     const label=note.rest?'rest':sheetInstrument()==='drums'?sheetDrumLabel(sheetDrumPartForMidi(resolved.midi)):resolved?.label;
-    document.querySelector('#sheet-current-note').textContent=action+' '+label+' · '+sheetNoteValueLabel(note);
+    if(!sheetPlaybackSession||sheetPlaybackSession.paused)document.querySelector('#sheet-current-note').textContent=action+' '+label+' · '+sheetNoteValueLabel(note);
   }
   for(const group of document.querySelectorAll('#sheet-staff .sheet-note'))group.classList.toggle('selected',group.dataset.sheetNoteId===id);
   sheetPreviewClientPoint=null;
@@ -1838,7 +1853,10 @@ function openRecordingAsSheet(song){
 }
 function updateSheetTransport(){
   const active=!!sheetPlaybackSession,playing=active&&!sheetPlaybackSession.paused,preparing=active&&sheetPlaybackSession.preparing;
-  document.querySelector('#sheet-play').disabled=playing||preparing;document.querySelector('#sheet-pause').disabled=!playing||preparing;document.querySelector('#sheet-stop').disabled=!active;
+  const play=document.querySelector('#sheet-play');
+  play.disabled=playing||preparing;
+  play.textContent=active&&sheetPlaybackSession.paused?'▶ Resume sheet':'▶ Play sheet';
+  document.querySelector('#sheet-pause').disabled=!playing||preparing;document.querySelector('#sheet-stop').disabled=!active;
 }
 function stopSheetPlayback(message='Stopped'){
   const session=sheetPlaybackSession;if(session){session.timers.forEach(timer=>clearTimeout(timer));session.timers.clear();session.voices.forEach(voice=>stopVoice(voice,true,.025));session.voices.clear();if(session.frame)cancelAnimationFrame(session.frame)}
@@ -1846,15 +1864,7 @@ function stopSheetPlayback(message='Stopped'){
   document.querySelectorAll('#sheet-staff .sheet-note.playing').forEach(note=>note.classList.remove('playing'));
   document.querySelector('#sheet-playhead')?.setAttribute('visibility','hidden');
 }
-function sheetAnimatePlayhead(session,notes,scoreNotes,time,endBeat){
-  const writtenById=new Map(scoreNotes.map(note=>[note.id,note.beat]));
-  const layout=sheetDisplayLayout(),measureBeats=layout.measureBeats;
-  const performedMeasures=new Map();
-  for(const note of notes){
-    const written=writtenById.get(note.sourceId),measure=Math.floor((note.beat+1e-7)/measureBeats);
-    if(Number.isFinite(written))performedMeasures.set(measure,note.beat-written);
-  }
-  const measureOrder=[...performedMeasures.keys()];
+function sheetAnimatePlayhead(session,measureOrder,measureBeats,time,endBeat){
   let lastRow=-1;
   const draw=()=>{
     if(sheetPlaybackSession!==session||session.paused)return;
@@ -1865,8 +1875,9 @@ function sheetAnimatePlayhead(session,notes,scoreNotes,time,endBeat){
       if(time(middle)<=elapsed)low=middle;else high=middle;
     }
     const measure=Math.floor((low+1e-7)/measureBeats);
-    const mapped=measureOrder.findLast(index=>index<=measure);
-    const writtenBeat=Math.max(0,low-(performedMeasures.get(mapped)||0));
+    const lastIndex=measureOrder.length-1;
+    const sourceMeasure=measureOrder[measure]??(measureOrder[lastIndex]??0)+measure-Math.max(0,lastIndex);
+    const writtenBeat=Math.max(0,low+(sourceMeasure-measure)*measureBeats);
     const cursor=document.querySelector('#sheet-playhead'),currentLayout=sheetDisplayLayout();
     if(cursor){
       const x=sheetBeatToX(writtenBeat,currentLayout);
@@ -1886,16 +1897,35 @@ function sheetAnimatePlayhead(session,notes,scoreNotes,time,endBeat){
   };
   session.frame=requestAnimationFrame(draw);
 }
+function sheetRefreshPlaybackReadout(session){
+  const active=[...session.activeLabels.values()];
+  const pitches=[...new Set(active.filter(item=>!item.rest).map(item=>item.label))];
+  document.querySelector('#sheet-current-note').textContent=pitches.length
+    ?'Playing '+pitches.join(' + '):active.length?'Rest':'Playing sheet';
+}
+function sheetScheduleVoiceEnd(voice,holdSeconds,fade){
+  const gain=voice.gain?.gain;
+  if(!gain||!audio)return false;
+  const end=audio.currentTime+holdSeconds;
+  try{
+    gain.cancelScheduledValues(end);
+    gain.setTargetAtTime(0,end,Math.max(.001,fade/5));
+    for(const source of voice.sources||[voice.source])source.stop(end+fade);
+    return true;
+  }catch{return false}
+}
 function scheduleSheetPlayback(session){
   if(!session||session.paused)return;
   const score=sheetResolveNotes(),measureBeats=sheetMeasureBeats();
-  const {notes:resolved,endBeat}=SheetExpression.expandRepeatMeasures(score,measureBeats);
+  const {notes:resolved,endBeat,measureOrder}=SheetExpression.expandRepeatMeasures(score,measureBeats);
   const time=sheetBuildClock(resolved,Number(document.querySelector('#sheet-tempo').value)||100);
   const gains=sheetBuildGains(resolved,measureBeats);
   const instrument=sheetInstrument();
   session.highlighted=new Set();
+  session.activeLabels=new Map();
+  const elapsed=()=>session.elapsedMs+performance.now()-session.startedAt;
   const schedule=(time,callback)=>{
-    const delay=Math.max(0,time-session.elapsedMs-performance.now()+session.startedAt);
+    const delay=Math.max(0,time-elapsed());
     const timer=setTimeout(()=>{
       session.timers.delete(timer);
       if(sheetPlaybackSession===session&&!session.paused)callback();
@@ -1904,39 +1934,55 @@ function scheduleSheetPlayback(session){
   };
   const findGroup=id=>[...document.querySelectorAll('#sheet-staff .sheet-note')].find(item=>item.dataset.sheetNoteId===id);
   const chains=sheetPlaybackChains(resolved);
-  for(const {members,start,end} of chains){
-    if(time(end)<=session.elapsedMs)continue;
-    const first=members[0];
-    const {durationFactor,gainFactor}=SheetExpression.articulationTiming(first.articulation);
-    const writtenDuration=time(end)-time(start);
-    const gateEnd=members.length>1||first.articulation==='fermata'?time(end):time(start)+writtenDuration*durationFactor;
-    let voice=null;
-    if(!first.rest&&gateEnd>session.elapsedMs&&(instrument!=='drums'||time(start)>=session.elapsedMs)){
-      schedule(time(start),()=>{
+  const segments=SheetExpression.playbackSegments(chains,time,monophonicInstruments.has(instrument));
+  sheetRefreshPlaybackReadout(session);
+  for(const {chain,first,start,end,gate,gainFactor} of segments){
+    if(gate<=session.elapsedMs)continue;
+    const shouldAttack=!first.rest&&(instrument!=='drums'||start>=session.elapsedMs);
+    let voice=null,releaseScheduled=false;
+    const fade=Math.min(.03,(end-start)/3000);
+    if(shouldAttack){
+      schedule(start,()=>{
+        const holdSeconds=(gate-elapsed())/1000;
+        if(holdSeconds<=0)return;
         voice=instrument==='drums'?playDrum(sheetDrumPartForMidi(first.midi),false,gains.get(first.id)*gainFactor)
-          :playInstrumentNote(instrument,first.midi-(instrument==='clarinet'?2:0),.24*gains.get(first.id)*gainFactor,'Sheet · '+first.label,false);
-        if(voice)session.voices.add(voice);
+          :playInstrumentNote(instrument,first.midi-(instrument==='clarinet'?2:0),.24*gains.get(first.id)*gainFactor,'Sheet · '+first.label,false,{holdSeconds});
+        if(voice){
+          session.voices.add(voice);
+          voice.source?.addEventListener('ended',()=>session.voices.delete(voice),{once:true});
+          if(instrument!=='drums')releaseScheduled=sheetScheduleVoiceEnd(voice,holdSeconds,fade);
+        }
       });
-      schedule(gateEnd,()=>{
-        if(!voice)return;
-        if(instrument!=='drums')stopVoice(voice,false,Math.min(.03,writtenDuration/3000));
+      if(instrument!=='drums')schedule(gate,()=>{
+        if(!voice||releaseScheduled)return;
+        stopVoice(voice,false,fade);
         session.voices.delete(voice);
       });
     }
-    for(const note of members){
+    if(!first.rest&&!shouldAttack)continue;
+    for(const note of chain.members){
       const id=note.sourceId||note.id;
-      const noteEnd=time(note.beat+note.durationBeats);
-      if(noteEnd<=session.elapsedMs)continue;
-      schedule(time(note.beat),()=>{
+      const noteStart=time(note.beat),noteEnd=Math.min(gate,time(note.beat+note.durationBeats));
+      if(noteEnd<=Math.max(session.elapsedMs,noteStart))continue;
+      schedule(noteStart,()=>{
+        if(elapsed()>=noteEnd)return;
+        const label=!note.rest&&instrument==='drums'?sheetDrumLabel(sheetDrumPartForMidi(note.midi)):note.label;
+        session.activeLabels.set(note.id,{id,label,rest:note.rest});
         session.highlighted.add(id);
         findGroup(id)?.classList.add('playing');
-        const label=instrument==='drums'?sheetDrumLabel(sheetDrumPartForMidi(note.midi)):note.label;
-        document.querySelector('#sheet-current-note').textContent=note.rest?`Rest · beat ${note.beat+1}`:`Playing ${label}`;
+        sheetRefreshPlaybackReadout(session);
       });
-      schedule(noteEnd,()=>{session.highlighted.delete(id);findGroup(id)?.classList.remove('playing')});
+      schedule(noteEnd,()=>{
+        if(!session.activeLabels.delete(note.id))return;
+        if(![...session.activeLabels.values()].some(item=>item.id===id)){
+          session.highlighted.delete(id);
+          findGroup(id)?.classList.remove('playing');
+        }
+        sheetRefreshPlaybackReadout(session);
+      });
     }
   }
-  sheetAnimatePlayhead(session,resolved,score,time,endBeat);
+  sheetAnimatePlayhead(session,measureOrder,measureBeats,time,endBeat);
   schedule(time(endBeat)+120,()=>stopSheetPlayback('Playback complete'));
 }
 function startSheetPlayback({restart=false}={}){
@@ -1952,7 +1998,13 @@ function startSheetPlayback({restart=false}={}){
       const ready=await ensureAudioReady();
       if(sheetPlaybackSession!==session)return;
       if(!ready){stopSheetPlayback('Audio is unavailable. Press Play sheet to try again.');return}
-      await loadInstrument(sheetInstrument());
+      let sampleDeadline;
+      try{
+        await Promise.race([
+          loadInstrument(sheetInstrument()).catch(error=>console.warn('Sheet instrument samples did not load',error)),
+          new Promise(resolve=>{sampleDeadline=setTimeout(resolve,650)}),
+        ]);
+      }finally{clearTimeout(sampleDeadline)}
       if(sheetPlaybackSession!==session)return;
       session.startedAt=performance.now();
       session.preparing=false;

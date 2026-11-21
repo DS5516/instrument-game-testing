@@ -80,7 +80,7 @@
     let sourceEndBeat = 0;
     for (const note of notes) {
       if (!Number.isFinite(note.beat) || note.beat < 0) continue;
-      const index = Math.floor(note.beat / beatsPerMeasure);
+      const index = Math.floor((note.beat + 1e-7) / beatsPerMeasure);
       if (!measures.has(index)) measures.set(index, { notes: [] });
       const measure = measures.get(index);
       measure.notes.push(note);
@@ -152,8 +152,66 @@
     }
     expanded.sort((left, right) => left.beat - right.beat || (left.step || 0) - (right.step || 0));
 
-    return { notes: expanded, endBeat };
+    return { notes: expanded, endBeat, measureOrder: order };
   }
 
-  return { articulations, articulationTiming, renderArticulation, expandRepeatMeasures };
+  function playbackSegments(chains, time, monophonic = false) {
+    const ordered = [...chains].sort((a, b) => a.start - b.start);
+    const segments = [];
+    for (const chain of ordered) {
+      const first = chain.members[0];
+      const { durationFactor, gainFactor } = articulationTiming(first.articulation);
+      const start = time(chain.start), end = time(chain.end);
+      const gate = chain.members.length > 1 || first.articulation === 'fermata' || first.rest
+        ? end : start + (end - start) * durationFactor;
+      const segment = { chain, first, start, end, gate, gainFactor };
+      segments.push(segment);
+    }
+    if (!monophonic) return segments;
+    const playable = [];
+    const rests = [];
+    for (const current of segments) {
+      if (current.first.rest) { rests.push(current); continue; }
+      const previous = playable.at(-1);
+      if (!previous || Math.abs(previous.start - current.start) > 0.001) {
+        if (previous) previous.gate = Math.min(previous.gate, current.start);
+        playable.push(current);
+      } else {
+        const a = previous.first, b = current.first;
+        if ((b.voice || 1) < (a.voice || 1) || ((b.voice || 1) === (a.voice || 1) && b.midi > a.midi)) {
+          playable[playable.length - 1] = current;
+        }
+      }
+    }
+    return [...playable, ...rests].sort((a, b) => a.start - b.start);
+  }
+
+  function sustainLoopForSample(buffer, rate, holdSeconds, midi) {
+    if (!holdSeconds || !(rate > 0) || holdSeconds <= buffer.duration / rate) return null;
+    if (typeof buffer.getChannelData !== 'function' || !(buffer.sampleRate > 0)) return null;
+    const samples = buffer.getChannelData(0);
+    const period = buffer.sampleRate / (440 * 2 ** ((midi - 69) / 12));
+    const start = Math.floor(samples.length * 0.32);
+    const center = start + Math.round((samples.length * 0.38) / period) * period;
+    const radius = Math.ceil(period / 2);
+    const finish = Math.min(samples.length - 32, Math.round(center) + radius);
+    const begin = Math.max(start + Math.ceil(period * 4), Math.round(center) - radius);
+    if (!(begin <= finish)) return null;
+    const probeLength = Math.min(Math.ceil(period), samples.length - start);
+    let energy = 0;
+    for (let frame = start; frame < start + probeLength; frame++) energy += samples[frame] ** 2;
+    if (energy / probeLength < 1e-7) return null;
+    let end = begin, bestError = Infinity;
+    for (let frame = begin; frame <= finish; frame++) {
+      let error = 0;
+      for (let k = 0; k < 24; k += 3) {
+        const delta = samples[start + k] - samples[frame + k];
+        error += delta * delta;
+      }
+      if (error < bestError) { bestError = error; end = frame; }
+    }
+    return { start: start / buffer.sampleRate, end: end / buffer.sampleRate };
+  }
+
+  return { articulations, articulationTiming, renderArticulation, expandRepeatMeasures, playbackSegments, sustainLoopForSample };
 });

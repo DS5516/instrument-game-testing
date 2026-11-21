@@ -1,5 +1,12 @@
 # Instrument Testing Versions
 
+## Sheet creator repair, round 4 — Playback (2026-11-21)
+
+- Skip expired notes if a browser timer is late. Keep percussion in the session until its source ends so Pause and Stop release ringing sounds. Schedule pitched releases on the audio clock.
+- Match highlights and the note readout to articulation gates, follow repeated blank measures with the cursor, and keep short samples sustaining for long wind or violin notes.
+- Use a bounded sample wait, clear queued playback on restart, and play one deterministic voice at a time on flute and clarinet.
+- Added simulated timing tests for stale timers, percussion stop, staccato, ties, and silent rests, plus pure tests for sustained sample boundaries and monophonic playback.
+
 ## Sheet creator repair, round 3 — Notation (2026-11-21)
 
 - Recover written triplet values from older saved durations and group triplets by onset so a chord does not split the bracket.

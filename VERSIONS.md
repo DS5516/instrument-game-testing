@@ -1,5 +1,11 @@
 # Instrument Testing Versions
 
+## Sheet creator repair, round 1 — Staff geometry (2026-11-21)
+
+- Use the SVG's rendered layout for hit testing, the ghost note, and the playback cursor. A resize could previously change the number of measures computed by input before the visible SVG reflowed.
+- Preserve staff height and pitch range while editing a score with ledger notes. Refresh the ghost after scrolling and hide it when entry would be rejected.
+- Added regression coverage for a resize arriving before redraw and for ledger note entry and removal. Geometry tests cover 100%, 125%, and 150% simulated SVG scaling in both clefs.
+
 ## 0.8.0 — Round 5: score layout, playback, and export (2026-11-21)
 
 - Added staff wrapping, measure numbers, zoom, selectable snap grids, note labels, an eraser, and undo and redo shortcuts. Horizontal moves respect rhythm within each voice. Changing clefs preserves written pitch.

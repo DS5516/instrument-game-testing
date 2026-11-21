@@ -22,7 +22,7 @@ function extractFunction(name) {
 }
 
 const editorFunctions = [
-  'sheetClef', 'sheetStaffGeometry', 'sheetStepToY', 'sheetYToStep',
+  'sheetClef', 'sheetStaffGeometry', 'sheetDisplayLayout', 'sheetStepToY', 'sheetYToStep',
   'sheetLedgerSteps', 'sheetBeatToX', 'sheetBeatSystem', 'sheetStaffPoint', 'sheetSnapPoint',
   'sheetHandlePointerUp', 'sheetDragTarget',
 ].map(extractFunction).join('\n');
@@ -39,6 +39,7 @@ const sandbox = {
     },
   },
   sheetNotes: [],
+  sheetRenderedLayout: null,
   selectedSheetNoteId: null,
   sheetDragState: null,
   sheetPreviewClientPoint: null,
@@ -97,7 +98,7 @@ for (const [clef, expected] of Object.entries(expectedStaffPitches)) {
     for (let step = 0; step <= 8; step += 1) {
       const pitch = api.pitchAtStep(step, clef);
       assert.equal(`${pitch.letter}${pitch.octave}`, expected[step], `step ${step}`);
-      for (const [sx, sy, ox, oy] of [[1, 1, 0, 0], [1.5, 1.5, 180, 92], [0.8, 1.2, -240, 640]]) {
+      for (const [sx, sy, ox, oy] of [[1, 1, 0, 0], [1.25, 1.25, -170, -95], [1.5, 1.5, 180, 92], [0.8, 1.2, -240, 640]]) {
         svg = transformedSvg(sx, sy, ox, oy);
         const localX = layout.left + 24;
         const localY = api.sheetStepToY(step, layout);

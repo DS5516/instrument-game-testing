@@ -266,6 +266,40 @@ test('clef changes and undo/redo preserve the written pitch', () => {
   assert.equal(run('sheetResolveNotes()[0].midi'), 60);
 });
 
+test('a resize before redraw still places the note on the displayed measure and line', () => {
+  const { run, svg, viewport, notes } = createEditor();
+  const displayed = run('sheetStaffGeometry()');
+  const x = run('sheetBeatToX(4.5)');
+  const y = displayed.bottom - displayed.stepHeight*10;
+  viewport.clientWidth = 900;
+
+  svg.fire('pointermove', {clientX:x*scaleX+offsetX,clientY:y*scaleY+offsetY});
+  const preview = svg.querySelector('#sheet-note-preview');
+  assert.equal(preview.attrs.visibility,'visible');
+  assert.equal(preview.querySelector('text').textContent,'A5');
+  svg.fire('click', {clientX:x*scaleX+offsetX,clientY:y*scaleY+offsetY});
+  assert.equal(notes()[0].beat,4.5);
+  assert.equal(notes()[0].step,10);
+});
+
+test('editing ledger notes keeps the staff position and system height stable', () => {
+  const { run, press, pointer, notes } = createEditor();
+  const initial = run('sheetDisplayLayout()');
+  pointer(0,14);
+  pointer(1,-6);
+  assert.deepEqual(notes().map(note=>note.step),[14,-6]);
+  assert.equal(run('sheetDisplayLayout().bottom'),initial.bottom);
+  assert.equal(run('sheetDisplayLayout().height'),initial.height);
+
+  run("sheetNotes.push({id:'extreme',beat:2,step:20,durationBeats:1}); renderSheetStaff(); selectSheetNote('extreme');");
+  const expanded = run('sheetDisplayLayout()');
+  press('delete-note');
+  assert.equal(run('sheetDisplayLayout().bottom'),expanded.bottom);
+  assert.equal(run('sheetDisplayLayout().height'),expanded.height);
+  press('new');
+  assert.equal(run('sheetDisplayLayout().bottom'),initial.bottom);
+});
+
 test('time signatures are centered in the staff halves and stay before the first barline', () => {
   const { input, systems, viewport } = createEditor();
   viewport.clientWidth = 600;

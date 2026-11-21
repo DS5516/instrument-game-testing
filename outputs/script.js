@@ -1042,9 +1042,10 @@ function sheetResolveNotes(notes=sheetNotes,settings={}){
   });
   return resolved;
 }
-function sheetStaffGeometry(notes=sheetNotes){
+let sheetRenderedLayout=null;
+function sheetStaffGeometry(notes=sheetNotes,previousLayout=null){
   const steps=notes.filter(note=>!note.rest).map(note=>Number(note.step)||0);
-  const minStep=Math.min(-6,...steps),maxStep=Math.max(14,...steps);
+  const minStep=Math.min(previousLayout?.minStep??-6,...steps),maxStep=Math.max(previousLayout?.maxStep??14,...steps);
   const top=132+(maxStep-14)*sheetStaffStepHeight,bottom=top+4*sheetStaffLineSpacing;
   const height=bottom+Math.max(76,-minStep*sheetStaffStepHeight+42);
   const measureBeats=sheetMeasureBeats(),left=210,measureWidth=20+measureBeats*144;
@@ -1055,6 +1056,9 @@ function sheetStaffGeometry(notes=sheetNotes){
   const systemCount=Math.ceil(Math.max(2,lastMeasure+2)/measuresPerSystem);
   return {top,bottom,height,minStep,maxStep,stepHeight:sheetStaffStepHeight,lineSpacing:sheetStaffLineSpacing,left,measureWidth,measureBeats,zoom,measuresPerSystem,systemCount,
     width:left+measuresPerSystem*measureWidth+24};
+}
+function sheetDisplayLayout(){
+  return sheetRenderedLayout||sheetStaffGeometry();
 }
 function sheetStepToY(step,layout=sheetStaffGeometry()){
   return layout.bottom-Number(step)*layout.stepHeight;
@@ -1085,7 +1089,7 @@ function sheetNoteHitTarget(target){
   const hit=target?.closest?.('.sheet-notehead,.sheet-note-label,.sheet-rest-glyph,.sheet-rest-block');
   return hit?.closest('[data-sheet-note-id]')||null;
 }
-function sheetSnapPoint(event,layout=sheetStaffGeometry()){
+function sheetSnapPoint(event,layout=sheetDisplayLayout()){
   const local=sheetStaffPoint(event);
   if(!local||local.y<0||local.x<layout.left)return null;
   const row=Math.floor(local.y/layout.height),localY=local.y-row*layout.height;
@@ -1097,15 +1101,18 @@ function sheetSnapPoint(event,layout=sheetStaffGeometry()){
   const start=measure*layout.measureBeats,end=start+layout.measureBeats;
   const rawBeat=start+(xInMeasure-10)/(layout.measureWidth-20)*layout.measureBeats;
   const division=Number(document.querySelector('#sheet-grid')?.value)||(document.querySelector('#sheet-triplet')?.checked?12:8);
-  let beat=Math.max(start,Math.min(end-1/division,Math.round(rawBeat*division)/division));
+  const lastSlot=Math.ceil(layout.measureBeats*division-1e-7)-1;
+  let beat=start+Math.max(0,Math.min(lastSlot,Math.round((rawBeat-start)*division)))/division;
+  const voice=Number(document.querySelector('#sheet-voice')?.value)||1;
   for(const note of sheetNotes){
+    if((note.voice||1)!==voice)continue;
     const next=note.beat+note.durationBeats;
-    if(next>=start&&next<end&&Math.abs(rawBeat-next)<Math.abs(rawBeat-beat))beat=next;
+    if(next>=start&&next<end-1e-7&&Math.abs(rawBeat-next)<Math.abs(rawBeat-beat))beat=next;
   }
   return {x:sheetBeatToX(beat,layout),beat,step};
 }
 function sheetPreviewLabel(position){
-  const preview={...position,id:'sheet-preview'};
+  const preview={...position,id:position.excludeId||'sheet-preview'};
   const notes=position.excludeId?sheetNotes.filter(item=>item.id!==position.excludeId):sheetNotes;
   const note=sheetResolveNotes([...notes,preview]).find(item=>item.id===preview.id);
   if(note&&!note.rest&&sheetInstrument()==='drums')return sheetDrumLabel(sheetDrumPartForMidi(note.midi));
@@ -1114,8 +1121,9 @@ function sheetPreviewLabel(position){
 function updateSheetPreview(position){
   const svg=document.querySelector('#sheet-staff'),group=svg?.querySelector('#sheet-note-preview');if(!group)return;
   if(!position){group.setAttribute('visibility','hidden');return}
-  const layout=sheetStaffGeometry(),moving=sheetNotes.find(note=>note.id===position.excludeId);
+  const layout=sheetDisplayLayout(),moving=sheetNotes.find(note=>note.id===position.excludeId);
   const preview=moving?{...moving,...position}:sheetEntryAt(position);
+  if(!moving&&sheetPlacementConflict(preview)){group.setAttribute('visibility','hidden');return}
   const y=sheetStepToY(preview.rest?(preview.voice===2?2:4):preview.step,layout)+sheetBeatSystem(preview.beat,layout)*layout.height;
   const previewId='sheet-ghost',row=sheetBeatSystem(preview.beat,layout);
   const rowNotes=sheetNotes.filter(note=>note.id!==position.excludeId&&sheetBeatSystem(note.beat,layout)===row);
@@ -1145,7 +1153,7 @@ function sheetCanMoveTo(note,beat,step,notes=sheetNotes){
   });
 }
 function sheetDragTarget(event,local,note){
-  const layout=sheetStaffGeometry(),row=sheetBeatSystem(note.beat,layout);
+  const layout=sheetDisplayLayout(),row=sheetBeatSystem(note.beat,layout);
   const y=Math.max(0,Math.min(layout.height,local.y-row*layout.height));
   const pitch=note.rest?note.step:Math.max(layout.minStep,Math.min(layout.maxStep,sheetYToStep(y,layout)));
   const target=document.querySelector('#sheet-horizontal')?.checked&&sheetSnapPoint(event,layout);
@@ -1269,10 +1277,12 @@ function sheetChordLayout(notes,layout){
   }
   return {headOffsets,chordStems,hasTwoVoices};
 }
-function renderSheetStaff(){
+function renderSheetStaff({resetPitchRange=false}={}){
   const svg=document.querySelector('#sheet-staff');if(!svg)return;
   sheetRenderedClef=sheetClef();
-  const layout=sheetStaffGeometry(),{width,height,systemCount,zoom}=layout;
+  const layout=sheetStaffGeometry(sheetNotes,resetPitchRange?null:sheetRenderedLayout);
+  sheetRenderedLayout=layout;
+  const {width,height,systemCount,zoom}=layout;
   const resolved=sheetResolveNotes(),marks=sheetMeasureMarks(resolved,layout.measureBeats);
   svg.replaceChildren();
   svg.setAttribute('viewBox',`0 0 ${width} ${height*systemCount}`);
@@ -1295,8 +1305,18 @@ function renderSheetStaff(){
   const preview=sheetSvgElement('g',{id:'sheet-note-preview',class:'sheet-note-preview','pointer-events':'none',visibility:'hidden'});
   preview.append(sheetSvgElement('ellipse',{cx:0,cy:0,rx:9,ry:6,transform:'rotate(-18 0 0)',class:'sheet-notehead'}),sheetSvgElement('text',{x:0,y:23,'text-anchor':'middle',class:'sheet-note-label'},''));
   svg.append(preview);
-  if(sheetPreviewClientPoint)updateSheetPreview(sheetSnapPoint({clientX:sheetPreviewClientPoint.x,clientY:sheetPreviewClientPoint.y},layout));
+  sheetRefreshHover();
   svg.setAttribute('aria-label',title+' sheet music staff · '+sheetClef()+' clef · '+sheetTimeSignature());
+}
+function sheetRefreshHover(){
+  if(sheetDragState)return;
+  const point=sheetPreviewClientPoint;
+  if(!point)return;
+  const target=document.elementFromPoint?.(point.x,point.y);
+  const svg=document.querySelector('#sheet-staff');
+  const overStaff=!document.elementFromPoint||(target&&svg.contains(target));
+  updateSheetPreview(overStaff&&!sheetLinkDraft&&!document.querySelector('#sheet-eraser').checked&&!sheetNoteHitTarget(target)
+    ?sheetSnapPoint({clientX:point.x,clientY:point.y}):null);
 }
 function sheetRenderSystem(svg,layout,allNotes,row,marks){
   const clef=sheetClef(),{top,bottom,width,measureBeats,measureWidth,left,measuresPerSystem}=layout;
@@ -1477,13 +1497,16 @@ function sheetEntryAt(snapped){
   const voice=chordNote?(chordNote.voice||1):Number(document.querySelector('#sheet-voice').value);
   return {beat,step,...value,voice,accidental:rest?'none':document.querySelector('#sheet-accidental').value,rest};
 }
+function sheetPlacementConflict({beat,step,voice,rest}){
+  return sheetNotes.some(note=>sheetSameBeat(note.beat,beat)&&(note.voice||1)===voice&&(note.rest||rest||note.step===step));
+}
 function sheetPlaceAt(event){
   const target=sheetNoteHitTarget(event.target);if(target){sheetSelectOrLink(target.getAttribute('data-sheet-note-id'));return}
   if(sheetLinkDraft||document.querySelector('#sheet-eraser').checked)return;
   const snapped=sheetSnapPoint(event);if(!snapped)return;
   const placement=sheetEntryAt(snapped);
-  const {beat,step,voice,rest}=placement;
-  if(sheetNotes.some(note=>sheetSameBeat(note.beat,beat)&&(note.voice||1)===voice&&(note.rest||rest||note.step===step))){
+  const {rest}=placement;
+  if(sheetPlacementConflict(placement)){
     document.querySelector('#sheet-status').textContent='That position is already used in this voice.';
     return;
   }
@@ -1595,7 +1618,8 @@ function applySheetProject(project){
   document.querySelector('#sheet-duration').value='1';document.querySelector('#sheet-dots').value='0';document.querySelector('#sheet-triplet').checked=false;
   document.querySelector('#sheet-voice').value='1';document.querySelector('#sheet-chord').checked=false;document.querySelector('#sheet-eraser').checked=false;
   document.querySelector('#sheet-staff').classList.remove('erasing');
-  renderSheetStaff();updateSheetEditButtons();document.querySelector('#sheet-status').textContent='Opened “'+project.title+'”.';
+  sheetPreviewClientPoint=null;
+  renderSheetStaff({resetPitchRange:true});updateSheetEditButtons();document.querySelector('#sheet-status').textContent='Opened “'+project.title+'”.';
 }
 function sheetExportMusicXML(){
   const status=document.querySelector('#sheet-status');
@@ -1699,7 +1723,7 @@ function stopSheetPlayback(message='Stopped'){
 }
 function sheetAnimatePlayhead(session,notes,scoreNotes,time,endBeat){
   const writtenById=new Map(scoreNotes.map(note=>[note.id,note.beat]));
-  const layout=sheetStaffGeometry(),measureBeats=layout.measureBeats;
+  const layout=sheetDisplayLayout(),measureBeats=layout.measureBeats;
   const performedMeasures=new Map();
   for(const note of notes){
     const written=writtenById.get(note.sourceId),measure=Math.floor((note.beat+1e-7)/measureBeats);
@@ -1718,7 +1742,7 @@ function sheetAnimatePlayhead(session,notes,scoreNotes,time,endBeat){
     const measure=Math.floor((low+1e-7)/measureBeats);
     const mapped=measureOrder.findLast(index=>index<=measure);
     const writtenBeat=Math.max(0,low-(performedMeasures.get(mapped)||0));
-    const cursor=document.querySelector('#sheet-playhead'),currentLayout=sheetStaffGeometry();
+    const cursor=document.querySelector('#sheet-playhead'),currentLayout=sheetDisplayLayout();
     if(cursor){
       const x=sheetBeatToX(writtenBeat,currentLayout);
       const row=sheetBeatSystem(writtenBeat,currentLayout),offset=row*currentLayout.height;
@@ -1828,6 +1852,10 @@ function setupSheetMusicEditor(){
     sheetDragState=null;sheetPreviewClientPoint=null;updateSheetPreview(null);
   });
   svg.addEventListener('pointerleave',()=>{if(!sheetDragState){sheetPreviewClientPoint=null;updateSheetPreview(null)}});
+  if(typeof window!=='undefined')window.addEventListener('scroll',sheetRefreshHover,{capture:true,passive:true});
+  for(const id of ['sheet-duration','sheet-dots','sheet-accidental','sheet-place-rest','sheet-chord','sheet-voice','sheet-triplet','sheet-grid']){
+    document.querySelector('#'+id).addEventListener('input',sheetRefreshHover);
+  }
   ['sheet-title','sheet-composer-name','sheet-key-signature','sheet-time-signature','sheet-note-names'].forEach(id=>document.querySelector('#'+id).addEventListener('input',()=>{
     if(sheetPlaybackSession&&['sheet-key-signature','sheet-time-signature'].includes(id))stopSheetPlayback();
     renderSheetStaff();
@@ -1882,6 +1910,8 @@ function setupSheetMusicEditor(){
     for(const tool of ['sheet-triplet','sheet-chord','sheet-eraser'])document.querySelector('#'+tool).checked=false;
     svg.classList.remove('erasing');
     document.querySelector('#sheet-voice').value='1';
+    sheetRenderedLayout=null;
+    sheetPreviewClientPoint=null;
     sheetNewProject();
   });
   renderSheetStaff();renderSheetProjectList();updateSheetEditButtons();updateSheetTransport();
